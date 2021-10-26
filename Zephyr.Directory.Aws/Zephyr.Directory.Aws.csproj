@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <CustomCommands>
+      <CustomCommands>
+        <Command>
+          <type>AfterBuild</type>
+          <command>dotnet lambda package --framework netcoreapp3.1</command>
+          <workingdir>${ProjectDir}</workingdir>
+        </Command>
+        <Command>
+          <type>AfterClean</type>
+          <command>rm -r *</command>
+          <workingdir>${ProjectDir}/bin/Release/netcoreapp3.1/</workingdir>
+          <externalConsole>True</externalConsole>
+        </Command>
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="AWSSDK.Lambda" />
+    <None Remove="Amazon.Lambda.Serialization.Json" />
+    <None Remove="Amazon.Lambda.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Lambda" Version="3.7.4.10" />
+    <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.0.0" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.0.0" />
+  </ItemGroup>
+</Project>
