@@ -17,7 +17,7 @@ namespace Zephyr.Directory.Ldap
         public string Filter { get; set; }
 
         [JsonProperty(PropertyName = "attributes", NullValueHandling = NullValueHandling.Ignore)]
-        public List<string> Attributes { get; set; }
+        public List<string> Attributes { get; set; }    // null = ALL, empty list = NONE
 
     }
 }

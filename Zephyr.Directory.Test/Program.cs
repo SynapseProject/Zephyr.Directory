@@ -22,6 +22,9 @@ namespace Zephyr.Directory
             search.Base = LdapUtils.GetEnvironmentVariable<string>("searchBase", "dc=sandbox,dc=local");
             search.Filter = LdapUtils.GetEnvironmentVariable<string>("searchFilter", "(samAccountName=wagug0)");
             search.Attributes = new List<string>();
+            //search.Attributes.Add("cn");
+            //search.Attributes.Add("name");
+            //search.Attributes.Add("homeDirectory");
 
             LdapRequest request = new LdapRequest();
             request.Config = config;
