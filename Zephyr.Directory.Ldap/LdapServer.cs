@@ -15,36 +15,29 @@ namespace Zephyr.Directory.Ldap
 {
     public class LdapServer
     {
-        public static void Test()
+        public static void Test(LdapRequest request)
         {
-            string server = LdapUtils.GetEnvironmentVariable<string>("server", Environment.MachineName);
-            int port = LdapUtils.GetEnvironmentVariable<int>("port", 389);
-            bool useSSL = LdapUtils.GetEnvironmentVariable<bool>("useSSL", false);
+            LdapConfig config = request.Config;
+            LdapSearch search = request.Search;
 
-            string searchBase = LdapUtils.GetEnvironmentVariable<string>("searchBase", "dc=sandbox,dc=local");
-            string searchFilter = LdapUtils.GetEnvironmentVariable<string>("searchFilter", "(samAccountName=wagug0)");
-            string[] searchAttributes = null;
-            //{
-            //    "objectGUID"
-            //};
-
-            string username = LdapUtils.GetEnvironmentVariable<string>("username");
-            string password = LdapUtils.GetEnvironmentVariable<string>("password");
-
-            if (useSSL)
-                Console.WriteLine($"Connecting To Server : ldaps://{server}:{port}");
+            if (config.UseSSL)
+                Console.WriteLine($"Connecting To Server : ldaps://{config.Server}:{config.Port}");
             else
-                Console.WriteLine($"Connecting To Server : ldap://{server}:{port}");
+                Console.WriteLine($"Connecting To Server : ldap://{config.Server}:{config.Port}");
 
             LdapConnection ldap = new LdapConnection();
-            ldap.SecureSocketLayer = useSSL;
-            if (useSSL)
+            ldap.SecureSocketLayer = config.UseSSL;
+            if (config.UseSSL)
                 ldap.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
-            ldap.Connect(server, port);
+            ldap.Connect(config.Server, config.Port);
 
-            ldap.Bind(LdapConnection.LdapV3, username, password);
+            ldap.Bind(LdapConnection.LdapV3, config.Username, config.Password);
 
-            LdapSearchResults results = (LdapSearchResults)ldap.Search(searchBase, LdapConnection.ScopeSub, searchFilter, searchAttributes, false);
+            LdapSearchResults results = null;
+            if (search.Attributes?.Count == 0)
+                results = (LdapSearchResults)ldap.Search(search.Base, LdapConnection.ScopeSub, search.Filter, new string[] { "" }, false);
+            else
+                results = (LdapSearchResults)ldap.Search(search.Base, LdapConnection.ScopeSub, search.Filter, search.Attributes?.ToArray(), false);
 
             while (results.HasMore())
             {

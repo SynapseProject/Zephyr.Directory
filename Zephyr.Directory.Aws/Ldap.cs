@@ -11,9 +11,9 @@ namespace Zephyr.Directory.Aws
 {
     public class Ldap
     {
-        public static string Test(ILambdaContext ctx)
+        public static string Test(LdapRequest request, ILambdaContext ctx)
         {
-            LdapServer.Test();
+            LdapServer.Test(request);
             return "Success";
         }
     }
