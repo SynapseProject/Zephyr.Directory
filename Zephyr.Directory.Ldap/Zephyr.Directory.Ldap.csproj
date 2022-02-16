@@ -7,9 +7,13 @@
   <ItemGroup>
     <None Remove="Novell.Directory.Ldap.NETStandard" />
     <None Remove="Newtonsoft.Json" />
+    <None Remove="Utilities\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Utilities\" />
   </ItemGroup>
 </Project>

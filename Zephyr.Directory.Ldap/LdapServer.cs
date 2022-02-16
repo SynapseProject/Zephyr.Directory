@@ -20,18 +20,24 @@ namespace Zephyr.Directory.Ldap
             LdapConfig config = request.Config;
             LdapSearch search = request.Search;
 
-            if (config.UseSSL)
-                Console.WriteLine($"Connecting To Server : ldaps://{config.Server}:{config.Port}");
+            if (config.UseSSL.Value)
+                Console.WriteLine($"LDAP Server   : ldaps://{config.Server}:{config.Port}");
             else
-                Console.WriteLine($"Connecting To Server : ldap://{config.Server}:{config.Port}");
+                Console.WriteLine($"LDAP Server   : ldap://{config.Server}:{config.Port}");
 
             LdapConnection ldap = new LdapConnection();
-            ldap.SecureSocketLayer = config.UseSSL;
-            if (config.UseSSL)
+            ldap.SecureSocketLayer = config.UseSSL.Value;
+            if (config.UseSSL.Value)
                 ldap.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
-            ldap.Connect(config.Server, config.Port);
+            ldap.Connect(config.Server, config.Port.Value);
 
             ldap.Bind(LdapConnection.LdapV3, config.Username, config.Password);
+
+            if (request.Search.Base == null)
+                request.Search.Base = ldap.GetRootDseInfo().DefaultNamingContext;
+
+            Console.WriteLine($"Search Base   : {request.Search.Base}");
+            Console.WriteLine($"Search Filter : {request.Search.Filter}");
 
             LdapSearchResults results = null;
             if (search.Attributes?.Count == 0)
