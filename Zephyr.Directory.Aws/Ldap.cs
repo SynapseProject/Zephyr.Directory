@@ -13,7 +13,14 @@ namespace Zephyr.Directory.Aws
     {
         public static string Test(LdapRequest request, ILambdaContext ctx)
         {
-            LdapServer.Test(request);
+            LdapUtils.ApplyDefaulsAndValidate(request);
+
+            LdapServer ldap = new LdapServer(request.Config);
+            ldap.Connect();
+            ldap.Bind(request.Config);
+            ldap.Search(request.Search);
+            ldap.Disconnect();
+
             return "Success";
         }
     }

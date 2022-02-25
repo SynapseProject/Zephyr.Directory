@@ -8,6 +8,7 @@
     <None Remove="Novell.Directory.Ldap.NETStandard" />
     <None Remove="Newtonsoft.Json" />
     <None Remove="Utilities\" />
+    <None Remove="System.Security.Principal.Windows" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />

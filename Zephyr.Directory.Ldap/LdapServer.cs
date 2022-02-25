@@ -15,67 +15,147 @@ namespace Zephyr.Directory.Ldap
 {
     public class LdapServer
     {
-        public static void Test(LdapRequest request)
+        LdapConnection conn;
+
+        public string Server { get; set; }
+        public int Port { get; set; }
+        public bool UseSSL { get; set; }
+
+        public LdapServer(LdapConfig config)
         {
-            LdapConfig config = request.Config;
-            LdapSearch search = request.Search;
+            init(config.Server, config.Port.Value, config.UseSSL.Value);
+        }
 
-            if (config.UseSSL.Value)
-                Console.WriteLine($"LDAP Server   : ldaps://{config.Server}:{config.Port}");
+        public LdapServer(string server, int port, bool useSSL)
+        {
+            init(server, port, useSSL);
+        }
+
+        public override string ToString()
+        {
+            if (this.UseSSL)
+                return $"ldaps://{this.Server}:{this.Port}";
             else
-                Console.WriteLine($"LDAP Server   : ldap://{config.Server}:{config.Port}");
+                return $"ldap://{this.Server}:{this.Port}";
+        }
 
-            LdapConnection ldap = new LdapConnection();
-            ldap.SecureSocketLayer = config.UseSSL.Value;
-            if (config.UseSSL.Value)
-                ldap.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
-            ldap.Connect(config.Server, config.Port.Value);
+        private void init(string server, int port, bool useSSL)
+        {
+            this.Server = server;
+            this.Port = port;
+            this.UseSSL = useSSL;
 
-            ldap.Bind(LdapConnection.LdapV3, config.Username, config.Password);
+            this.conn = new LdapConnection();
 
-            if (request.Search.Base == null)
-                request.Search.Base = ldap.GetRootDseInfo().DefaultNamingContext;
+            Console.WriteLine($"LDAP Server   : {this}");
 
-            Console.WriteLine($"Search Base   : {request.Search.Base}");
-            Console.WriteLine($"Search Filter : {request.Search.Filter}");
+            conn.SecureSocketLayer = this.UseSSL;
+            if (this.UseSSL)
+                conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
+
+            this.Connect();
+        }
+
+        public void Connect()
+        {
+            if (!conn.Connected)
+                conn.Connect(this.Server, this.Port);
+        }
+
+        public void Disconnect()
+        {
+            if (conn.Connected)
+                conn.Disconnect();
+        }
+
+        public void Bind(LdapConfig config)
+        {
+            Bind(config.Username, config.Password);
+        }
+
+        public void Bind(string username, string password)
+        {
+            conn.Bind(LdapConnection.LdapV3, username, password);
+        }
+
+        public LdapResponse Search(LdapSearch search)
+        {
+            return Search(search.Base, search.Filter, search.Attributes);
+        }
+
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes)
+        {
+            return Search(searchBase, searchFilter, attributes?.ToArray());
+        }
+
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null)
+        {
+            if (!conn.Connected)
+                throw new Exception($"Server {this} Is Not Connected.");
+
+            if (!conn.Bound)
+                throw new Exception($"Server {this} Is Not Bound.");
+
+            if (searchBase == null)
+                searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+
+            Console.WriteLine($"Search Base   : {searchBase}");
+            Console.WriteLine($"Search Filter : {searchFilter}");
 
             LdapSearchResults results = null;
-            if (search.Attributes?.Count == 0)
-                results = (LdapSearchResults)ldap.Search(search.Base, LdapConnection.ScopeSub, search.Filter, new string[] { "" }, false);
+            if (attributes?.Length == 0)
+                results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false);
             else
-                results = (LdapSearchResults)ldap.Search(search.Base, LdapConnection.ScopeSub, search.Filter, search.Attributes?.ToArray(), false);
+                results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false);
+
+            LdapResponse response = ParseResults(results);
+            response.SearchBase = searchBase;
+            response.SearchFilter = searchFilter;
+            return response;
+        }
+
+        private LdapResponse ParseResults(LdapSearchResults results)
+        {
+            LdapResponse response = new LdapResponse();
 
             while (results.HasMore())
             {
                 try
                 {
                     LdapEntry record = results.Next();
-                    Console.WriteLine($">> {record.Dn}");
+
+                    LdapObject rec = new LdapObject();
+                    rec.DistinguishedName = record.Dn;
 
                     LdapAttributeSet attributes = record.GetAttributeSet();
+                    rec.Attributes = new Dictionary<string, object>();
+
                     foreach (string key in attributes.Keys)
                     {
                         LdapAttribute attribute = attributes[key];
-                        string name = attribute.Name;
+                        Type type = attribute.GetType();
                         string value = attribute.StringValue;
+                        if (key == "objectGUID")
+                            value = new Guid(attribute.ByteValue).ToString();
+                        if (key == "objectSid")
+                            value = LdapUtils.ConvertByteToStringSid(attribute.ByteValue);
 
 
-
-                        Console.WriteLine($"   - {name} : {value}");
+                        rec.Attributes.Add(key, value);
                     }
 
+                    response.Records.Add(rec);
                 }
                 catch (LdapReferralException)
                 {
                     continue;
                 }
-
             }
 
-            ldap.Disconnect();
+            return response;
         }
 
-        public static bool MySSLHandler(X509Certificate certificate, int[] certificateErrors)
+        private bool MySSLHandler(X509Certificate certificate, int[] certificateErrors)
         {
 
             //X509Store store = null;

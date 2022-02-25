@@ -15,7 +15,16 @@ namespace Zephyr.Directory
             Console.WriteLine(JsonTools.Serialize(request, true));
 
             LdapUtils.ApplyDefaulsAndValidate(request);
-            LdapServer.Test(request);
+
+            LdapServer ldap = new LdapServer(request.Config);
+            ldap.Connect();
+            ldap.Bind(request.Config);
+
+            LdapResponse response = ldap.Search(request.Search);
+
+            Console.WriteLine(JsonTools.Serialize(response, true));
+
+            ldap.Disconnect();
         }
     }
 }
