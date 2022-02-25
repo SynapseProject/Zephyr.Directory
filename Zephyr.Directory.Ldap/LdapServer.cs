@@ -20,15 +20,16 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
+        public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL)
+        public LdapServer(string server, int port, bool useSSL, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL);
+            init(server, port, useSSL, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -39,11 +40,19 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL)
+        private void init(string server, int port, bool useSSL, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
+            this.ReturnTypes = attributeReturnTypes;
+            if (this.ReturnTypes == null)
+                this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
+
+            if (!this.ReturnTypes.ContainsKey("objectGUID"))
+                this.ReturnTypes.Add("objectGUID", LdapAttributeTypes.Guid);
+            if (!this.ReturnTypes.ContainsKey("objectSid"))
+                this.ReturnTypes.Add("objectSid", LdapAttributeTypes.Sid);
 
             this.conn = new LdapConnection();
 
@@ -133,15 +142,39 @@ namespace Zephyr.Directory.Ldap
                     foreach (string key in attributes.Keys)
                     {
                         LdapAttribute attribute = attributes[key];
-                        Type type = attribute.GetType();
+
+                        LdapAttributeTypes attrType = LdapAttributeTypes.String;
+                        if (this.ReturnTypes.ContainsKey(key))
+                            attrType = this.ReturnTypes[key];
+
+                        switch (attrType)
+                        {
+                            case LdapAttributeTypes.Bytes:
+                                rec.Attributes.Add(key, attribute.ByteValue);
+                                break;
+                            case LdapAttributeTypes.BytesArray:
+                                rec.Attributes.Add(key, attribute.ByteValueArray);
+                                break;
+                            case LdapAttributeTypes.Guid:
+                                rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
+                                break;
+                            case LdapAttributeTypes.Sid:
+                                rec.Attributes.Add(key, LdapUtils.ConvertByteToStringSid(attribute.ByteValue));
+                                break;
+                            case LdapAttributeTypes.StringArray:
+                                rec.Attributes.Add(key, attribute.StringValueArray);
+                                break;
+                            default:
+                                rec.Attributes.Add(key, attribute.StringValue);
+                                break;
+
+                        }
+
                         string value = attribute.StringValue;
                         if (key == "objectGUID")
                             value = new Guid(attribute.ByteValue).ToString();
                         if (key == "objectSid")
                             value = LdapUtils.ConvertByteToStringSid(attribute.ByteValue);
-
-
-                        rec.Attributes.Add(key, value);
                     }
 
                     response.Records.Add(rec);

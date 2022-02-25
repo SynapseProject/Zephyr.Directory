@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -7,6 +8,16 @@ using Newtonsoft.Json.Serialization;
 
 namespace Zephyr.Directory.Ldap
 {
+    public enum LdapAttributeTypes
+    {
+        String,
+        StringArray,
+        Bytes,
+        BytesArray,
+        Guid,
+        Sid
+    }
+
     public class LdapConfig
     {
         [JsonProperty(PropertyName = "server", NullValueHandling = NullValueHandling.Ignore)]
@@ -23,5 +34,9 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "password", NullValueHandling = NullValueHandling.Ignore)]
         public string Password { get; set; }
+
+        [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
+
     }
 }
