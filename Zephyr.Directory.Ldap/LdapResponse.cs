@@ -10,6 +10,9 @@ namespace Zephyr.Directory.Ldap
 {
     public class LdapResponse
     {
+        [JsonProperty(PropertyName = "server", NullValueHandling = NullValueHandling.Ignore)]
+        public string Server { get; set; }
+
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
 

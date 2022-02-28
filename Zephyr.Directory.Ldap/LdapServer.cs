@@ -59,8 +59,6 @@ namespace Zephyr.Directory.Ldap
 
             this.conn = new LdapConnection();
 
-            Console.WriteLine($"LDAP Server   : {this}");
-
             conn.SecureSocketLayer = this.UseSSL;
             if (this.UseSSL)
                 conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
@@ -111,9 +109,6 @@ namespace Zephyr.Directory.Ldap
             if (searchBase == null)
                 searchBase = conn.GetRootDseInfo().DefaultNamingContext;
 
-            Console.WriteLine($"Search Base   : {searchBase}");
-            Console.WriteLine($"Search Filter : {searchFilter}");
-
             LdapSearchResults results = null;
             if (attributes?.Length == 0)
                 results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false);
@@ -121,6 +116,7 @@ namespace Zephyr.Directory.Ldap
                 results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false);
 
             LdapResponse response = ParseResults(results);
+            response.Server = this.ToString();
             response.SearchBase = searchBase;
             response.SearchFilter = searchFilter;
             return response;

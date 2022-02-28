@@ -47,6 +47,16 @@ namespace Zephyr.Directory.Ldap
             if (request.Config.Password == null)
                 request.Config.Password = LdapUtils.GetEnvironmentVariable<string>("password");
 
+            if (request.Config.AttributeTypes == null)
+            {
+                string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("returnTypes");
+                if (!String.IsNullOrWhiteSpace(attrConfigStr))
+                {
+                    LdapConfig attrConfig = JsonTools.Deserialize<LdapConfig>(attrConfigStr);
+                    request.Config.AttributeTypes = attrConfig.AttributeTypes;
+                }
+            }
+
             // Set Search Defaults
             if (request.Search == null)
                 request.Search = new LdapSearch();
