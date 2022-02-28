@@ -49,8 +49,11 @@ namespace Zephyr.Directory.Ldap
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
 
+            // Unless Specified, Return the "objectGUID" attrubute as a Guid string
             if (!this.ReturnTypes.ContainsKey("objectGUID"))
                 this.ReturnTypes.Add("objectGUID", LdapAttributeTypes.Guid);
+
+            // Unless Specified, Return the "objectSid" attribute as a Security Identifier string
             if (!this.ReturnTypes.ContainsKey("objectSid"))
                 this.ReturnTypes.Add("objectSid", LdapAttributeTypes.Sid);
 
@@ -150,10 +153,18 @@ namespace Zephyr.Directory.Ldap
                         switch (attrType)
                         {
                             case LdapAttributeTypes.Bytes:
-                                rec.Attributes.Add(key, attribute.ByteValue);
+                                string str = BitConverter.ToString(attribute.ByteValue);
+                                str = str.Replace("-", "");
+                                rec.Attributes.Add(key, "0x" + str);
                                 break;
                             case LdapAttributeTypes.BytesArray:
-                                rec.Attributes.Add(key, attribute.ByteValueArray);
+                                List<string> strs = new List<string>();
+                                foreach (byte[] b in attribute.ByteValueArray)
+                                {
+                                    string s = BitConverter.ToString(b);
+                                    strs.Add("0x" + s.Replace("-", ""));
+                                }
+                                rec.Attributes.Add(key, strs);
                                 break;
                             case LdapAttributeTypes.Guid:
                                 rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
