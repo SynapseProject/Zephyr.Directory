@@ -16,6 +16,6 @@ namespace Zephyr.Directory.Ldap
         public LdapSearch Search { get; set; }
 
         [JsonProperty(PropertyName = "crypto", NullValueHandling = NullValueHandling.Ignore)]
-        public Crypto Crypto { get; set; }
+        public LdapCrypto Crypto { get; set; }
     }
 }

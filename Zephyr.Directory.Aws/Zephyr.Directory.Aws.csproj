@@ -24,6 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
+    <ProjectReference Include="..\Zephyr.Crypto\Zephyr.Crypto.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="AWSSDK.Lambda" />

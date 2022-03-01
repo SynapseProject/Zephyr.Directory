@@ -67,17 +67,7 @@ namespace Zephyr.Directory.Ldap
                 request.Search.Base = LdapUtils.GetEnvironmentVariable<string>("searchBase");
 
             // Set Crypto Defaults
-            if (request.Crypto == null)
-                request.Crypto = new Crypto();
-
-            if (request.Crypto.InitVector == null)
-                request.Crypto.InitVector = LdapUtils.GetEnvironmentVariable<string>("iv", "1234567890ABCDEF");
-
-            if (request.Crypto.SaltValue == null)
-                request.Crypto.SaltValue = LdapUtils.GetEnvironmentVariable<string>("salt", "DefaultSaltValue");
-
-            if (request.Crypto.PassPhrase == null)
-                request.Crypto.PassPhrase = LdapUtils.GetEnvironmentVariable<string>("passphrase", "DefaultPassPhrase");
+            request.Crypto = ApplyDefaulsAndValidate(request.Crypto);
 
             // Validate Request
             if (request.Search.Filter == null)
@@ -88,6 +78,24 @@ namespace Zephyr.Directory.Ldap
             catch { }
 
             return request;
+        }
+
+        public static LdapCrypto ApplyDefaulsAndValidate(LdapCrypto crypto)
+        {
+            // Set Crypto Defaults
+            if (crypto == null)
+                crypto = new LdapCrypto();
+
+            if (crypto.InitVector == null)
+                crypto.InitVector = LdapUtils.GetEnvironmentVariable<string>("iv", "1234567890ABCDEF");
+
+            if (crypto.SaltValue == null)
+                crypto.SaltValue = LdapUtils.GetEnvironmentVariable<string>("salt", "DefaultSaltValue");
+
+            if (crypto.PassPhrase == null)
+                crypto.PassPhrase = LdapUtils.GetEnvironmentVariable<string>("passphrase", "DefaultPassPhrase");
+
+            return crypto;
         }
 
         // Taken from Stack Overflow Solution

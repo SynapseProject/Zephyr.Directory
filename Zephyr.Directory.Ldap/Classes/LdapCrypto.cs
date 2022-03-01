@@ -10,7 +10,7 @@ using Zephyr.Crypto;
 
 namespace Zephyr.Directory.Ldap
 {
-    public class Crypto
+    public class LdapCrypto
     {
         [JsonProperty(PropertyName = "iv", NullValueHandling = NullValueHandling.Ignore)]
         public string InitVector { get; set; }
