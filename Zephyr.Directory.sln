@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zephyr.Directory.Test", "Ze
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zephyr.Directory.Aws", "Zephyr.Directory.Aws\Zephyr.Directory.Aws.csproj", "{DF5910E0-5F18-4AD7-9F1F-AC716D5C8E82}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zephyr.Crypto", "Zephyr.Crypto\Zephyr.Crypto.csproj", "{DD757554-251C-4950-9C60-095E18D95BE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zephyr.Crypto.Test", "Zephyr.Crypto.Test\Zephyr.Crypto.Test.csproj", "{E285108C-30B7-47E9-A3E1-D49219F5BE7A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{DF5910E0-5F18-4AD7-9F1F-AC716D5C8E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF5910E0-5F18-4AD7-9F1F-AC716D5C8E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF5910E0-5F18-4AD7-9F1F-AC716D5C8E82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD757554-251C-4950-9C60-095E18D95BE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD757554-251C-4950-9C60-095E18D95BE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD757554-251C-4950-9C60-095E18D95BE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD757554-251C-4950-9C60-095E18D95BE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E285108C-30B7-47E9-A3E1-D49219F5BE7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E285108C-30B7-47E9-A3E1-D49219F5BE7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E285108C-30B7-47E9-A3E1-D49219F5BE7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E285108C-30B7-47E9-A3E1-D49219F5BE7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

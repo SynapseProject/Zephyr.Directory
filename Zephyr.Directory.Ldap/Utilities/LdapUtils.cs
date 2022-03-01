@@ -2,6 +2,8 @@
 using System.Text;
 using System.Collections.Generic;
 
+using Zephyr.Crypto;
+
 namespace Zephyr.Directory.Ldap
 {
     public class LdapUtils
@@ -64,9 +66,26 @@ namespace Zephyr.Directory.Ldap
             if (request.Search.Base == null)
                 request.Search.Base = LdapUtils.GetEnvironmentVariable<string>("searchBase");
 
+            // Set Crypto Defaults
+            if (request.Crypto == null)
+                request.Crypto = new Crypto();
+
+            if (request.Crypto.InitVector == null)
+                request.Crypto.InitVector = LdapUtils.GetEnvironmentVariable<string>("iv", "1234567890ABCDEF");
+
+            if (request.Crypto.SaltValue == null)
+                request.Crypto.SaltValue = LdapUtils.GetEnvironmentVariable<string>("salt", "DefaultSaltValue");
+
+            if (request.Crypto.PassPhrase == null)
+                request.Crypto.PassPhrase = LdapUtils.GetEnvironmentVariable<string>("passphrase", "DefaultPassPhrase");
+
             // Validate Request
             if (request.Search.Filter == null)
                 throw new Exception("Search Filter Not Provided.");
+
+            // Attempt To Decrypt Password
+            try { request.Config.Password = Rijndael.Decrypt(request.Config.Password, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector); }
+            catch { }
 
             return request;
         }

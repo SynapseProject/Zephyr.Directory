@@ -9,6 +9,7 @@
     <None Remove="Newtonsoft.Json" />
     <None Remove="Utilities\" />
     <None Remove="System.Security.Principal.Windows" />
+    <None Remove="Classes\" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="3.6.0" />
@@ -16,5 +17,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Utilities\" />
+    <Folder Include="Classes\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Zephyr.Crypto\Zephyr.Crypto.csproj" />
   </ItemGroup>
 </Project>
