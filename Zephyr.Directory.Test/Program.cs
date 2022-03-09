@@ -16,22 +16,25 @@ namespace Zephyr.Directory
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
             Console.WriteLine(JsonTools.Serialize(request, true));
 
+            LdapResponse response = new LdapResponse();
+            response.Type = request.Type;
+
             LdapUtils.ApplyDefaulsAndValidate(request);
 
-            if (request.Crypto?.TextValue != null)
-                Console.WriteLine(Rijndael.Encrypt(request.Crypto.TextValue, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector));
+            if (request.Type == RequestType.Encrypt)
+                response.Value = Rijndael.Encrypt(request.Value, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector);
             else
             {
                 LdapServer ldap = new LdapServer(request.Config);
                 ldap.Connect();
                 ldap.Bind(request.Config);
 
-                LdapResponse response = ldap.Search(request.Search);
-
-                Console.WriteLine(JsonTools.Serialize(response, true));
-
+                response = ldap.Search(request.Search);
                 ldap.Disconnect();
             }
+
+            Console.WriteLine(JsonTools.Serialize(response, true));
+
         }
     }
 }

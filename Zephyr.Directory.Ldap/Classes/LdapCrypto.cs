@@ -20,10 +20,5 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "passphrase", NullValueHandling = NullValueHandling.Ignore)]
         public string PassPhrase { get; set; }
-
-        // When Present, Return Encrypted Value
-        [JsonProperty(PropertyName = "text", NullValueHandling = NullValueHandling.Ignore)]
-        public string TextValue { get; set; }
-
     }
 }

@@ -12,22 +12,31 @@ namespace Zephyr.Directory.Aws
 {
     public class Ldap
     {
-        public static string Encrypt(LdapCrypto request, ILambdaContext ctx)
+        public static LdapResponse ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {
-            LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request);
-            string encrypted = Rijndael.Encrypt(crypto.TextValue, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
-            return encrypted;
-        }
+            LdapResponse response = new LdapResponse();
+            if (request.Type != RequestType.Encrypt)
+                Console.WriteLine("REQUEST - " + JsonTools.Serialize(request, false));
 
-        public static LdapResponse Search(LdapRequest request, ILambdaContext ctx)
-        {
-            LdapUtils.ApplyDefaulsAndValidate(request);
+            if (request.Type == RequestType.Encrypt)
+            {
+                LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
+                response.Value = Rijndael.Encrypt(request.Value, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
+            }
+            else
+            {
+                LdapUtils.ApplyDefaulsAndValidate(request);
 
-            LdapServer ldap = new LdapServer(request.Config);
-            ldap.Connect();
-            ldap.Bind(request.Config);
-            LdapResponse response = ldap.Search(request.Search);
-            ldap.Disconnect();
+                LdapServer ldap = new LdapServer(request.Config);
+                ldap.Connect();
+                ldap.Bind(request.Config);
+                response = ldap.Search(request.Search);
+                ldap.Disconnect();
+            }
+
+            response.Type = request.Type;
+            if (request.Type != RequestType.Encrypt)
+                Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false));
 
             return response;
         }

@@ -22,6 +22,27 @@ namespace Zephyr.Directory.Ldap
         public bool UseSSL { get; set; }
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
+        // Known Active Directory Attributes That Do Not Default To "String" For Their Values.
+        // These can be overridden in the config section.
+        private static readonly Dictionary<string, LdapAttributeTypes> DefaultTypes = new Dictionary<string, LdapAttributeTypes>()
+        {
+            { "objectClass", LdapAttributeTypes.StringArray },
+            { "managedObjects", LdapAttributeTypes.StringArray },
+            { "dSCorePropagationData", LdapAttributeTypes.StringArray },
+            { "objectGUID", LdapAttributeTypes.Guid },
+            { "objectSid", LdapAttributeTypes.Sid },
+            { "member", LdapAttributeTypes.StringArray },
+            { "memberOf", LdapAttributeTypes.StringArray },
+            { "proxyAddresses", LdapAttributeTypes.StringArray },
+            { "businessCategory", LdapAttributeTypes.StringArray },
+            { "otherHomePhone", LdapAttributeTypes.StringArray },
+            { "otherPager", LdapAttributeTypes.StringArray },
+            { "otherFacsimileTelephoneNumber", LdapAttributeTypes.StringArray },
+            { "otherMobile", LdapAttributeTypes.StringArray },
+            { "otherIpPhone", LdapAttributeTypes.StringArray },
+            { "secretary", LdapAttributeTypes.StringArray },
+        };
+
         public LdapServer(LdapConfig config)
         {
             init(config.Server, config.Port.Value, config.UseSSL.Value, config.AttributeTypes);
@@ -49,13 +70,9 @@ namespace Zephyr.Directory.Ldap
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
 
-            // Unless Specified, Return the "objectGUID" attrubute as a Guid string
-            if (!this.ReturnTypes.ContainsKey("objectGUID"))
-                this.ReturnTypes.Add("objectGUID", LdapAttributeTypes.Guid);
-
-            // Unless Specified, Return the "objectSid" attribute as a Security Identifier string
-            if (!this.ReturnTypes.ContainsKey("objectSid"))
-                this.ReturnTypes.Add("objectSid", LdapAttributeTypes.Sid);
+            foreach (string key in DefaultTypes.Keys)
+                if (!(this.ReturnTypes.ContainsKey(key)))
+                    this.ReturnTypes.Add(key, DefaultTypes[key]);
 
             this.conn = new LdapConnection();
 
@@ -125,6 +142,7 @@ namespace Zephyr.Directory.Ldap
         private LdapResponse ParseResults(LdapSearchResults results)
         {
             LdapResponse response = new LdapResponse();
+            response.Records = new List<LdapObject>();
 
             while (results.HasMore())
             {
@@ -177,12 +195,10 @@ namespace Zephyr.Directory.Ldap
 
                         }
 
-                        string value = attribute.StringValue;
-                        if (key == "objectGUID")
-                            value = new Guid(attribute.ByteValue).ToString();
-                        if (key == "objectSid")
-                            value = LdapUtils.ConvertByteToStringSid(attribute.ByteValue);
+                        if (attribute.ByteValueArray.Length > 1 && attrType != LdapAttributeTypes.BytesArray && attrType != LdapAttributeTypes.StringArray)
+                            Console.WriteLine($"WARNING : Multi-Value Attribute [{attribute.Name}] Was Returned As A Single Value");
                     }
+
 
                     response.Records.Add(rec);
                 }
