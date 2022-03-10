@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 using Zephyr.Crypto;
 
@@ -62,18 +63,11 @@ namespace Zephyr.Directory.Ldap
             }
 
             // Set Search Defaults
-            if (request.Search == null)
-                request.Search = new LdapSearch();
-
-            if (request.Search.Base == null)
-                request.Search.Base = LdapUtils.GetEnvironmentVariable<string>("searchBase");
+            if (request.SearchBase == null)
+                request.SearchBase = LdapUtils.GetEnvironmentVariable<string>("searchBase");
 
             // Set Crypto Defaults
             request.Crypto = ApplyDefaulsAndValidate(request.Crypto);
-
-            // Validate Request
-            if (request.Search.Filter == null)
-                throw new Exception("Search Filter Not Provided.");
 
             // Attempt To Decrypt Password
             try { request.Config.Password = Rijndael.Decrypt(request.Config.Password, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector); }
@@ -146,11 +140,52 @@ namespace Zephyr.Directory.Ldap
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }
             return strSid.ToString();
+        }
+
+        public static string GetSearchString(LdapRequest request)
+        {
+            string searchFilter = null;
+
+            if (request.ObjectType == null)
+                searchFilter = request.SearchValue;
+            else
+            {
+                string idSearchFilter = GetIdentitySearchString(request);
+                searchFilter = $"(&(objectCategory={request.ObjectType.Value}){idSearchFilter})";
+            }
+
+            return searchFilter;
+        }
+
+        public static string GetIdentitySearchString(LdapRequest request)
+        {
+            string identity = null;
+            Guid g = Guid.Empty;
+            string dnRegexString = @"^\s*?(cn\s*=|ou\s*=|dc\s*=)";
+
+            try { g = Guid.Parse(request.SearchValue); } catch { }
+
+            if (g != Guid.Empty)
+            {
+                request.SearchBase = $"<GUID={g}>";
+                identity = $"(cn=*)";
+            }
+            //else if (request.SearchValue.StartsWith("S-"))
+            //{
+            //    request.SearchBase = $"<SID={request.SearchValue}>";
+            //    identity = $"(cn=*)";
+            //}
+            else if (Regex.IsMatch(request.SearchValue, dnRegexString, RegexOptions.IgnoreCase))
+                identity = $"(distinguishedName={request.SearchValue})";
+            else
+                identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(sAMAccountName={request.SearchValue}))";
+
+            return identity;
         }
     }
 }

@@ -12,6 +12,10 @@ namespace Zephyr.Directory.Ldap
 {
     public class LdapCrypto
     {
+        // If Included In Request, Will Simply Return Encrypted Value Of "Text".
+        [JsonProperty(PropertyName = "text", NullValueHandling = NullValueHandling.Ignore)]
+        public string Text { get; set; }
+
         [JsonProperty(PropertyName = "iv", NullValueHandling = NullValueHandling.Ignore)]
         public string InitVector { get; set; }
 

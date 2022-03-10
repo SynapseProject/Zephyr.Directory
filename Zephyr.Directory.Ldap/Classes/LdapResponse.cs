@@ -10,9 +10,8 @@ namespace Zephyr.Directory.Ldap
 {
     public class LdapResponse
     {
-        [JsonConverter(typeof(StringEnumConverter))]
-        [JsonProperty(PropertyName = "type", NullValueHandling = NullValueHandling.Ignore)]
-        public RequestType Type { get; set; }
+        [JsonProperty(PropertyName = "success", NullValueHandling = NullValueHandling.Ignore)]
+        public bool Success { get; set; } = true;
 
         [JsonProperty(PropertyName = "server", NullValueHandling = NullValueHandling.Ignore)]
         public string Server { get; set; }
@@ -24,10 +23,10 @@ namespace Zephyr.Directory.Ldap
         public string SearchFilter { get; set; }
 
         [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
-        public List<LdapObject> Records { get; set; } 
+        public List<LdapObject> Records { get; set; }
 
-        [JsonProperty(PropertyName = "value", NullValueHandling = NullValueHandling.Ignore)]
-        public string Value { get; set; }
+        [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
+        public string Message { get; set; }
 
     }
 }

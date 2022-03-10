@@ -105,11 +105,6 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(LdapConnection.LdapV3, username, password);
         }
 
-        public LdapResponse Search(LdapSearch search)
-        {
-            return Search(search.Base, search.Filter, search.Attributes);
-        }
-
         public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes)
         {
             return Search(searchBase, searchFilter, attributes?.ToArray());
@@ -117,25 +112,44 @@ namespace Zephyr.Directory.Ldap
 
         public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null)
         {
-            if (!conn.Connected)
-                throw new Exception($"Server {this} Is Not Connected.");
+            LdapResponse response = new LdapResponse();
 
-            if (!conn.Bound)
-                throw new Exception($"Server {this} Is Not Bound.");
+            try
+            {
+                if (!conn.Connected)
+                {
+                    response.Message = $"Server {this} Is Not Connected.";
+                    response.Success = false;
+                }
 
-            if (searchBase == null)
-                searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+                if (!conn.Bound)
+                {
+                    response.Message = $"Server {this} Is Not Bound.";
+                    response.Success = false;
+                }
 
-            LdapSearchResults results = null;
-            if (attributes?.Length == 0)
-                results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false);
-            else
-                results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false);
+                if (searchBase == null)
+                    searchBase = conn.GetRootDseInfo().DefaultNamingContext;
 
-            LdapResponse response = ParseResults(results);
+                LdapSearchResults results = null;
+                if (attributes?.Length == 0)
+                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false);
+                else
+                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false);
+
+                response = ParseResults(results);
+
+            }
+            catch (Exception e)
+            {
+                response.Message = e.Message;
+                response.Success = false;
+            }
+
             response.Server = this.ToString();
             response.SearchBase = searchBase;
             response.SearchFilter = searchFilter;
+
             return response;
         }
 
