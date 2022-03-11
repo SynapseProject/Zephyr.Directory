@@ -15,10 +15,12 @@ namespace Zephyr.Directory.Aws
         public static LdapResponse ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {
             LdapResponse response = new LdapResponse();
-            if (request.Crypto?.Text == null)
+            bool isEncryptionRequest = request.Crypto?.Text != null;
+
+            if (!isEncryptionRequest)
                 Console.WriteLine("REQUEST - " + JsonTools.Serialize(request, false));
 
-            if (request.Crypto?.Text != null)
+            if (isEncryptionRequest)
             {
                 LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
                 response.Message = Rijndael.Encrypt(crypto.Text, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
@@ -35,7 +37,7 @@ namespace Zephyr.Directory.Aws
                 ldap.Disconnect();
             }
 
-            if (request.Crypto?.Text != null)
+            if (!isEncryptionRequest)
                 Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false));
 
             return response;
