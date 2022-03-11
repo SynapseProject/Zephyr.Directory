@@ -198,7 +198,7 @@ namespace Zephyr.Directory.Ldap
                                 rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
                                 break;
                             case LdapAttributeTypes.Sid:
-                                rec.Attributes.Add(key, LdapUtils.ConvertByteToStringSid(attribute.ByteValue));
+                                rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
                                 break;
                             case LdapAttributeTypes.StringArray:
                                 rec.Attributes.Add(key, attribute.StringValueArray);
