@@ -35,6 +35,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "password", NullValueHandling = NullValueHandling.Ignore)]
         public string Password { get; set; }
 
+        [JsonProperty(PropertyName = "maxResults", NullValueHandling = NullValueHandling.Ignore)]
+        public int? MaxResults { get; set; }
+
         [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
         public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
 

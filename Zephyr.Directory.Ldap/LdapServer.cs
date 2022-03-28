@@ -20,6 +20,7 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
+        public int MaxResults { get; set; } = 1000;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         // Known Active Directory Attributes That Do Not Default To "String" For Their Values.
@@ -45,12 +46,12 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, attributeReturnTypes);
+            init(server, port, useSSL, maxResults, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -61,11 +62,13 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
+            if (maxResults != null)
+                this.MaxResults = maxResults.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -77,10 +80,12 @@ namespace Zephyr.Directory.Ldap
             this.conn = new LdapConnection();
 
             conn.SecureSocketLayer = this.UseSSL;
+            LdapSearchConstraints consts = conn.SearchConstraints;
             if (this.UseSSL)
                 conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
 
             this.Connect();
+            consts = conn.SearchConstraints;
         }
 
         public void Connect()
@@ -132,10 +137,16 @@ namespace Zephyr.Directory.Ldap
                     searchBase = conn.GetRootDseInfo().DefaultNamingContext;
 
                 LdapSearchResults results = null;
+                // TODO : Set Search Constrains
+                LdapSearchConstraints options = new LdapSearchConstraints();
+                options.TimeLimit = 0;
+                options.MaxResults = this.MaxResults;
+                options.ServerTimeLimit = 3600;
+
                 if (attributes?.Length == 0)
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false);
+                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
                 else
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false);
+                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
 
                 response = ParseResults(results);
 
