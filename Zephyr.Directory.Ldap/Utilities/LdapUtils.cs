@@ -29,26 +29,168 @@ namespace Zephyr.Directory.Ldap
             return (T)Convert.ChangeType(value, typeof(T));
         }
 
+        public static T GetEnvironmentVariableJson<T>(string name, T defaultValue = default(T))
+        {
+            string value = Environment.GetEnvironmentVariable(name);
+
+            if (value == null)
+                return defaultValue;
+            else
+                return JsonTools.Deserialize<T>(value);
+        }
+
+        public static string GetDomainName(string distinguisedName)
+        {
+            String pattern = @"DC=([^,]+)";
+            List<string> parts = new List<string>();
+            Regex r = new Regex(pattern);
+            MatchCollection mc = r.Matches(distinguisedName);
+            foreach (Match m in mc)
+                if (m.Groups[1]?.Value != null)
+                    parts.Add(m.Groups[1].Value);
+
+            return String.Join(".", parts.ToArray());
+
+        }
+
+        public static string GetDomainDistinguishedName(string domain)
+        {
+            string[] parts = domain.Split('.');
+            for (int i = 0; i < parts.Length; i++)
+                parts[i] = $"DC={parts[i]}";
+            return String.Join(",", parts);
+        }
+
+        public static string GetDomainShortName(string sAMAccountName)
+        {
+            string domain = null;
+            string ntid = sAMAccountName.Replace('/', '\\');
+            if (ntid.Contains('\\'))
+                domain = ntid.Substring(0, ntid.IndexOf('\\'));
+
+            return domain;
+        }
+
+        public static string GetDomainNameFromUPN(string username)
+        {
+            string domain = null;
+            if (username.Contains('@'))
+                domain = username.Substring(username.LastIndexOf('@') + 1);
+            return domain;
+        }
+
+        public static LdapConfig GetConfigProfile(LdapRequest request)
+        {
+            LdapConfig config = new LdapConfig();
+            Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_CONFIGS");
+
+            // Get Values From Request Config
+            if (request.Config != null)
+                SetConfigValues(config, request.Config);
+
+            // Determine Domain Config From Request Values
+            if (configMap != null)
+            {
+                // Get Values From Request Search Base
+                if (request.SearchBase != null)
+                {
+                    string domain = GetDomainName(request.SearchBase);
+                    LdapConfig sbConfig = GetConfigProfileFromMap(configMap, domain);
+                    SetConfigValues(config, sbConfig);
+                }
+
+                // Get Values From Search Value
+                string domainKey = null;
+                LdapConfig svConfig = null;
+
+                // Check For Domain Short Name (DOMAIN\\sAMAccountName)
+                if (svConfig == null)
+                {
+                    domainKey = GetDomainShortName(request.SearchValue);
+                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                }
+
+                // Check For Domain from UserPrincipal Name (user@domain)
+                if (svConfig == null)
+                {
+                    domainKey = GetDomainNameFromUPN(request.SearchValue);
+                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                }
+
+                // Check For Domain from DistinguishedName
+                if (svConfig == null)
+                {
+                    domainKey = GetDomainName(request.SearchValue);
+                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                }
+
+                // If Domain Found From Search Value, Apply It
+                if (svConfig != null)
+                    SetConfigValues(config, svConfig);
+            }
+
+            // Get Values From Default Environment Variable (DEFAULT_CONFIG)
+            LdapConfig envConfig = GetEnvironmentVariableJson<LdapConfig>("DEFAULT_CONFIG");
+            SetConfigValues(config, envConfig);
+
+            // Finally, Apply Default Values If Still Null
+            if (config.Server == null)
+                config.Server = Environment.MachineName;
+
+            if (config.UseSSL == null)
+                config.UseSSL = false;
+
+            if (config.Port == null)
+                config.Port = config.UseSSL == true ? 636 : 389;
+
+            return config;
+        }
+
+        private static LdapConfig GetConfigProfileFromMap(Dictionary<string,string> map, string key)
+        {
+            LdapConfig config = null;
+            if (key != null)
+            {
+                string upKey = key?.ToUpper();
+                if (map.ContainsKey(upKey))
+                    config = LdapUtils.GetEnvironmentVariableJson<LdapConfig>(map[upKey]);
+            }
+
+            return config;
+        }
+
+        private static LdapConfig SetConfigValues(LdapConfig target, LdapConfig source)
+        {
+            if (source == null)
+                return target;
+
+            if (target.Server == null)
+                target.Server = source.Server;
+
+            if (target.Port == null)
+                target.Port = source.Port;
+
+            if (target.UseSSL == null)
+                target.UseSSL = source.UseSSL;
+
+            if (target.Username == null)
+                target.Username = source.Username;
+
+            if (target.Password == null)
+                target.Password = source.Password;
+
+            if (target.MaxResults == null)
+                target.MaxResults = source.MaxResults;
+
+            return target;
+        }
+
         public static LdapRequest ApplyDefaulsAndValidate(LdapRequest request)
         {
             // Set Config Defaults
-            if (request.Config == null)
-                request.Config = new LdapConfig();
+            request.Config = GetConfigProfile(request);
 
-            if (request.Config.Server == null)
-                request.Config.Server = LdapUtils.GetEnvironmentVariable<string>("server", Environment.MachineName);
-
-            if (request.Config.Port == null)
-                request.Config.Port = LdapUtils.GetEnvironmentVariable<int>("port", 389);
-
-            if (request.Config.UseSSL == null)
-                request.Config.UseSSL = LdapUtils.GetEnvironmentVariable<bool>("useSSL", false);
-
-            if (request.Config.Username == null)
-                request.Config.Username = LdapUtils.GetEnvironmentVariable<string>("username");
-
-            if (request.Config.Password == null)
-                request.Config.Password = LdapUtils.GetEnvironmentVariable<string>("password");
+            Console.WriteLine(JsonTools.Serialize(request.Config, true));
 
             string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("returnTypes");
             if (!String.IsNullOrWhiteSpace(attrConfigStr))
@@ -61,10 +203,6 @@ namespace Zephyr.Directory.Ldap
                     if (!request.Config.AttributeTypes.ContainsKey(key))
                         request.Config.AttributeTypes.Add(key, envAttrConfig.AttributeTypes[key]);
             }
-
-            // Set Search Defaults
-            if (request.SearchBase == null)
-                request.SearchBase = LdapUtils.GetEnvironmentVariable<string>("searchBase");
 
             // Set Crypto Defaults
             request.Crypto = ApplyDefaulsAndValidate(request.Crypto);
