@@ -269,10 +269,31 @@ namespace Zephyr.Directory.Ldap
                 identity = $"(distinguishedName={request.SearchValue})";
             else if (request.SearchValue.Contains('@') && request.ObjectType == ObjectType.User)     // Technically, both the CN and Name could contain an @ symbol as well
                 identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(userPrincipalName={request.SearchValue}))";
+            else if (ContainsKnownDomain(request.SearchValue))
+            {
+                // Strip Out Known Domain and Search ( DOMAIN\value )
+                string value = request.SearchValue.Substring(request.SearchValue.IndexOf('\\') + 1);
+                identity = $"(|(cn={value})(name={value})(sAMAccountName={value}))";
+            }
             else
                 identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(sAMAccountName={request.SearchValue}))";
 
             return identity;
+        }
+
+        public static bool ContainsKnownDomain(string value)
+        {
+            bool rc = false;
+
+            if (value.Contains('\\'))
+            {
+                Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_CONFIGS");
+                String domainShortName = GetDomainShortName(value);
+                if (domainShortName != null && configMap.ContainsKey(domainShortName.ToUpper()))
+                    rc = true;
+            }
+
+            return rc;
         }
     }
 }
