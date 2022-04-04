@@ -42,6 +42,10 @@ namespace Zephyr.Directory.Ldap
             { "otherMobile", LdapAttributeTypes.StringArray },
             { "otherIpPhone", LdapAttributeTypes.StringArray },
             { "secretary", LdapAttributeTypes.StringArray },
+            { "servicePrincipalName", LdapAttributeTypes.StringArray },
+            { "subRefs", LdapAttributeTypes.StringArray },
+            { "wellKnownObjects", LdapAttributeTypes.StringArray },
+            { "otherWellKnownObjects", LdapAttributeTypes.StringArray },
         };
 
         public LdapServer(LdapConfig config)

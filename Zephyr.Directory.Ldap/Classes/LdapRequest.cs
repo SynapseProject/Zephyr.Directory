@@ -10,8 +10,17 @@ namespace Zephyr.Directory.Ldap
 {
     public enum ObjectType
     {
-        User,
-        Group
+        User,                   // User and Contact Objects
+        Group,                  
+        OrganizationalUnit,
+        Ou,                     // Shorthand for OrganizationalUnit
+        Contact,                // Contact Objects Only
+        PrintQueue,
+        Printer,                // Same As PrintQueue             
+        Computer,
+        Volume,                 // Shared Folder
+        Domain,
+        DomainController        // (&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))
     }
 
     public class LdapRequest

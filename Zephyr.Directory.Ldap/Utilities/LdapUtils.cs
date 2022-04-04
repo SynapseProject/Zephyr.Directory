@@ -190,8 +190,6 @@ namespace Zephyr.Directory.Ldap
             // Set Config Defaults
             request.Config = GetConfigProfile(request);
 
-            Console.WriteLine(JsonTools.Serialize(request.Config, true));
-
             string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("returnTypes");
             if (!String.IsNullOrWhiteSpace(attrConfigStr))
             {
@@ -240,8 +238,18 @@ namespace Zephyr.Directory.Ldap
                 searchFilter = request.SearchValue;
             else
             {
-                string idSearchFilter = GetIdentitySearchString(request);
-                searchFilter = $"(&(objectCategory={request.ObjectType.Value}){idSearchFilter})";
+                string id = GetIdentitySearchString(request);
+
+                if (request.ObjectType == ObjectType.Ou)
+                    searchFilter = $"(&(objectCategory=OrganizationalUnit){id})";
+                else if (request.ObjectType == ObjectType.Contact)
+                    searchFilter = $"(&(objectCategory=Person)(objectClass=Contact){id})";
+                else if (request.ObjectType == ObjectType.DomainController)
+                    searchFilter = $"(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192){id})";
+                else if (request.ObjectType == ObjectType.Printer)
+                    searchFilter = $"(&(objectCategory=PrintQueue){id})";
+                else
+                    searchFilter = $"(&(objectCategory={request.ObjectType.Value}){id})";
             }
 
             return searchFilter;
@@ -269,14 +277,25 @@ namespace Zephyr.Directory.Ldap
                 identity = $"(distinguishedName={request.SearchValue})";
             else if (request.SearchValue.Contains('@') && request.ObjectType == ObjectType.User)     // Technically, both the CN and Name could contain an @ symbol as well
                 identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(userPrincipalName={request.SearchValue}))";
-            else if (ContainsKnownDomain(request.SearchValue))
-            {
-                // Strip Out Known Domain and Search ( DOMAIN\value )
-                string value = request.SearchValue.Substring(request.SearchValue.IndexOf('\\') + 1);
-                identity = $"(|(cn={value})(name={value})(sAMAccountName={value}))";
-            }
             else
-                identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(sAMAccountName={request.SearchValue}))";
+            {
+                string value = request.SearchValue;
+                if (ContainsKnownDomain(value))
+                {
+                    // Strip Out Known Domain and Search ( DOMAIN\value )
+                    value = value.Replace('/', '\\');
+                    value = value.Substring(value.IndexOf('\\') + 1);
+                }
+
+                if (request.ObjectType == ObjectType.Contact || request.ObjectType == ObjectType.Printer || request.ObjectType == ObjectType.Volume)
+                    identity = $"(|(cn={value})(name={value}))";
+                else if (request.ObjectType == ObjectType.Ou || request.ObjectType == ObjectType.OrganizationalUnit)
+                    identity = $"(|(ou={value})(name={value}))";
+                else if (request.ObjectType == ObjectType.Domain)
+                    identity = $"(name={value})";
+                else
+                    identity = $"(|(cn={value})(name={value})(sAMAccountName={value}))";
+            }
 
             return identity;
         }
@@ -285,7 +304,7 @@ namespace Zephyr.Directory.Ldap
         {
             bool rc = false;
 
-            if (value.Contains('\\'))
+            if (value.Contains('\\') || value.Contains('/'))
             {
                 Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_CONFIGS");
                 String domainShortName = GetDomainShortName(value);
