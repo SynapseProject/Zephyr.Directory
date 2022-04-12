@@ -31,7 +31,6 @@ namespace Zephyr.Directory.Aws
                 string searchFilter = LdapUtils.GetSearchString(request);
 
                 LdapServer ldap = new LdapServer(request.Config);
-                ldap.Connect();
                 ldap.Bind(request.Config);
                 response = ldap.Search(request.SearchBase, searchFilter, request.Attributes);
                 ldap.Disconnect();

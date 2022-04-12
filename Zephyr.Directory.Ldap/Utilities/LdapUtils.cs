@@ -82,14 +82,14 @@ namespace Zephyr.Directory.Ldap
         public static LdapConfig GetConfigProfile(LdapRequest request)
         {
             LdapConfig config = new LdapConfig();
-            Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_CONFIGS");
+            Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_MAPPINGS");
 
             // Get Values From Request Config
             if (request.Config != null)
                 SetConfigValues(config, request.Config);
 
             // Determine Domain Config From Request Values
-            if (configMap != null)
+            if (configMap != default(Dictionary<string,string>))
             {
                 // Get Values From Request Search Base
                 if (request.SearchBase != null)
@@ -190,7 +190,7 @@ namespace Zephyr.Directory.Ldap
             // Set Config Defaults
             request.Config = GetConfigProfile(request);
 
-            string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("returnTypes");
+            string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("RETURN_TYPES");
             if (!String.IsNullOrWhiteSpace(attrConfigStr))
             {
                 LdapConfig envAttrConfig = JsonTools.Deserialize<LdapConfig>(attrConfigStr);
@@ -219,13 +219,13 @@ namespace Zephyr.Directory.Ldap
                 crypto = new LdapCrypto();
 
             if (crypto.InitVector == null)
-                crypto.InitVector = LdapUtils.GetEnvironmentVariable<string>("iv", "1234567890ABCDEF");
+                crypto.InitVector = LdapUtils.GetEnvironmentVariable<string>("IV", "1234567890ABCDEF");
 
             if (crypto.SaltValue == null)
-                crypto.SaltValue = LdapUtils.GetEnvironmentVariable<string>("salt", "DefaultSaltValue");
+                crypto.SaltValue = LdapUtils.GetEnvironmentVariable<string>("SALT", "DefaultSaltValue");
 
             if (crypto.PassPhrase == null)
-                crypto.PassPhrase = LdapUtils.GetEnvironmentVariable<string>("passphrase", "DefaultPassPhrase");
+                crypto.PassPhrase = LdapUtils.GetEnvironmentVariable<string>("PASSPHRASE", "DefaultPassPhrase");
 
             return crypto;
         }
@@ -306,10 +306,13 @@ namespace Zephyr.Directory.Ldap
 
             if (value.Contains('\\') || value.Contains('/'))
             {
-                Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_CONFIGS");
-                String domainShortName = GetDomainShortName(value);
-                if (domainShortName != null && configMap.ContainsKey(domainShortName.ToUpper()))
-                    rc = true;
+                Dictionary<string, string> configMap = LdapUtils.GetEnvironmentVariableJson<Dictionary<string, string>>("DOMAIN_MAPPINGS");
+                if (configMap != default(Dictionary<string,string>))
+                {
+                    String domainShortName = GetDomainShortName(value);
+                    if (domainShortName != null && configMap.ContainsKey(domainShortName.ToUpper()))
+                        rc = true;
+                }
             }
 
             return rc;
