@@ -193,13 +193,13 @@ namespace Zephyr.Directory.Ldap
             string attrConfigStr = LdapUtils.GetEnvironmentVariable<string>("RETURN_TYPES");
             if (!String.IsNullOrWhiteSpace(attrConfigStr))
             {
-                LdapConfig envAttrConfig = JsonTools.Deserialize<LdapConfig>(attrConfigStr);
+                Dictionary<string, LdapAttributeTypes> returnTypes = JsonTools.Deserialize<Dictionary<string, LdapAttributeTypes>>(attrConfigStr);
                 if (request.Config.AttributeTypes == null)
                     request.Config.AttributeTypes = new Dictionary<string, LdapAttributeTypes>();
 
-                foreach (string key in envAttrConfig.AttributeTypes.Keys)
+                foreach (string key in returnTypes.Keys)
                     if (!request.Config.AttributeTypes.ContainsKey(key))
-                        request.Config.AttributeTypes.Add(key, envAttrConfig.AttributeTypes[key]);
+                        request.Config.AttributeTypes.Add(key, returnTypes[key]);
             }
 
             // Set Crypto Defaults
