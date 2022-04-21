@@ -1,0 +1,184 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the pre-requesite objects for installing and running the MryiAD application.
+
+Parameters:
+  ### Rest API
+  RestApiName:
+    Type: String
+    Default: myriad
+    Description: The name for the REST Api that will created.  Leave blank to skip.
+
+  ### Default VPC Security Group
+  DefaultSecurityGroupName:
+    Type: String
+    Default: myriad-vpc-sg
+    Description: The name of the default security group to be used with VPC lambda deployments.  Leave blank to skip.
+
+  DefaultSecurityGroupVpcId:
+    Type: String
+    Description: The id of the VPC where the default security group should be created.  Required if name provided above.
+
+  ### Lambda Execution Role
+  MyriadCoreRoleName:
+    Type: String
+    Default: myriad-core-role
+    Description: The name for the role allowing lambda to work with API Gateway and run in a VPC.  Leave blank to skip.
+  PolicyPermissionBoundry:
+    Type: String
+    Description: If a policy permission boundry is required, please enter the full arn here.
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Create an IAM Role for Lambda Execution."
+      Parameters:
+      - MyriadCoreRoleName
+      - PolicyPermissionBoundry
+    - Label:
+        default: "Create a Default VPC Security Group"
+      Parameters:
+      - DefaultSecurityGroupName
+      - DefaultSecurityGroupVpcId
+    - Label:
+        default: "Create an API Gateway"
+      Parameters:
+      - RestApiName
+
+Conditions:
+    CreateRestApi : !Not [ !Equals [!Ref RestApiName, ""] ]
+    CreateSecurityGroup : !Not [ !Equals [!Ref DefaultSecurityGroupName, ""] ]
+    CreateIamRole: !Not [ !Equals [!Ref MyriadCoreRoleName, ""] ]
+    PolicyPermissionBoundryProvided : !Not [ !Equals [!Ref PolicyPermissionBoundry, ""] ] 
+
+Resources:
+  ### API Gateway
+  # Main Rest API
+  RestApi:
+    Type: AWS::ApiGateway::RestApi
+    Condition: CreateRestApi
+    Properties:
+      Name: !Ref RestApiName
+      Description: API Entry points for the MryiAD application.
+      EndpointConfiguration:
+        Types:
+        - REGIONAL
+
+  # API Gateway Default Method
+  HelloWorldMethod:
+    Type: AWS::ApiGateway::Method
+    Condition: CreateRestApi
+    Properties:
+      RestApiId: !Ref RestApi
+      ResourceId: { "Fn::GetAtt": ["RestApi", "RootResourceId"] }
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: "{'statusCode': 200}"
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json: "{\"message\": \"Hello From MyriAD.\"}"
+            text/html: Hello From MyriAD.
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+
+  ### Default Security Group
+  MyriadDefaultSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: CreateSecurityGroup
+    Properties:
+      GroupName: !Ref DefaultSecurityGroupName
+      GroupDescription: Default Security Group Used For Running MyriAD Lambda Functions In A VPC.
+      SecurityGroupEgress:
+        CidrIp: 0.0.0.0/0
+        Description: Allows MyriAD To Call Any IP Address
+        IpProtocol: -1    # All Protocols
+      VpcId: !Ref DefaultSecurityGroupVpcId
+
+  ### Default Lambda Execution Role
+  MyriadCoreRole:
+    Type: AWS::IAM::Role
+    Condition: CreateIamRole
+    Properties: 
+      RoleName: !Ref MyriadCoreRoleName
+      Description: Role to allow Api Gateway and Lambda to work together.
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+            - apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSLambdaExecute
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      PermissionsBoundary: !If [ PolicyPermissionBoundryProvided, !Ref PolicyPermissionBoundry, !Ref "AWS::NoValue" ]
+
+
+
+Outputs:
+  Version:
+    Description: Cloud Formation Template Version
+    Value: 0.1.21158.0
+
+  StackName:
+    Description: The name of this stack.
+    Value:  !Ref AWS::StackName
+
+  ### Api Gateway Outputs
+  ApiGateway:
+    Condition: CreateRestApi
+    Description: The resource id for the API Gateway.
+    Value: !Ref RestApi
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadApiGateway"
+
+  RootResourceId:
+    Condition: CreateRestApi
+    Description: The root resource id for the API Gateway. 
+    Value: !GetAtt
+        - RestApi
+        - RootResourceId
+    Export:
+      Name: !Sub "${AWS::StackName}-RootResourceId"
+
+  ### Default Security Group Outputs
+  DefaultVPCSecurityGroupId:
+    Condition: CreateSecurityGroup
+    Description: The default security group created for running MyriAD within a VPC. 
+    Value: !Ref MyriadDefaultSecurityGroup
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadDefaultVpcSG"
+
+  LambdaRoleName:
+    Condition: CreateIamRole
+    Description: The Name id for the MyriadCore role created.
+    Value: !Ref MyriadCoreRole
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadCoreRoleName"
+
+  LambdaRoleArn:
+    Condition: CreateIamRole
+    Description: The ARN of the MyriadCore role.
+    Value: !GetAtt
+        - MyriadCoreRole
+        - Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadCoreRoleArn"
+
+  LambdaRoleId:
+    Condition: CreateIamRole
+    Description: The Role Id of the MyriadCore role.
+    Value: !GetAtt
+        - MyriadCoreRole
+        - RoleId
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadCoreRoleId"

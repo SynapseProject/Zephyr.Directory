@@ -1,0 +1,295 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the necessary lambda functions for the MyriAD application.
+Parameters:
+  ##### Lambda Function IAM Roles #####
+  LambdaCoreRoleArn:
+    Type: String
+    Description: (Required) The arn of the role to be used with the core lambda function. (arn:aws:iam::############:role/role-name)
+
+  ##### Lambda Function DotNet Core Code Locations
+  MyriadCodeBucketName:
+    Type: String
+    Description: (Required) The S3 bucket where the DotNet Core code is located.
+  MyriadCodeBucketKey:
+    Type: String
+    Description: (Required) The S3 Key for the zip file containing the lambda DotNet Core code.
+
+  ##### Lambda VPC Configuration
+  MyriadVpcSubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of VPC Subnet Ids to deploy the Lambda into. (subnet-00000000000000001,subnet-00000000000000002,subnet-00000000000000003)
+  MyriadVpcSecurityGroupIds:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of Security Groups to apply to the VPC instances. (sg-00000000000000001)
+
+  ##### Lambda Function Names
+  MyriadCoreFunctionName:
+    Type: String
+    Default: myriad-core
+    Description: (Required) The name for the function that processes the requests.
+
+  ##### Lambda Environment Variables
+  MyriadEnvDefaultConfig:
+    Type: String
+    Description: Default LDAP Configuration (DEFAULT_CONFIG).
+  MyriadEnvDomainMapping:
+    Type: String
+    Description: Maps Domains and Domain Short Names To LDAP Configurations.
+  MyriadEnvReturnTypes:
+    Type: String
+    Description: Maps LDAP Attributes To Correct Return Types (String, StringArray, Bytes, BytesArray, Guid or Sid).
+
+  ##### API Gateway Variables #####
+  ApiGatewayId:
+    Type: String
+    Description: (Required) The API Gateway Id.
+
+  RootResourceId:
+    Type: String
+    Description: (Required) The Root Resource Id.
+
+  ApiGatewayStageName:
+    Type: String
+    Default: myriad
+    Description: (Required) The stage name for the API Gateway Deployment.
+
+  DeployToStage:
+    Type: String
+    Default: true
+    AllowedValues: [true, false]
+    Description: (Required) Deploy API Gateway Methods to Stage.
+
+  SecureWithApiKey:
+    Type: String
+    Default: false
+    AllowedValues: [true, false]
+    Description: (Required) Secure the API Gateway Methods with an API Key.
+
+  ApiDefaultKeyName:
+    Type: String
+    Description: (Optional) The name for the Default API Key (Leave Blank To Skip).
+
+  ApiDefaultUsagePlanName:
+    Type: String
+    Description: (Optional) The name for the Default Usage Plan (Leave Blank To Skip).
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Lambda Deployment Configuration (Required)"
+      Parameters:
+      - MyriadCodeBucketName
+      - MyriadCodeBucketKey
+      - LambdaCoreRoleArn
+      - MyriadCoreFunctionName
+    - Label:
+        default: "Lambda VPC Deployment Targets (Optional - Leave both blank for deployments not tied to a VPC)"
+      Parameters:
+      - MyriadVpcSubnetIds
+      - MyriadVpcSecurityGroupIds
+    - Label:
+        default: "LDAP Server Configuration"
+      Parameters:
+      - MyriadEnvDefaultConfig
+      - MyriadEnvDomainMapping
+      - MyriadEnvReturnTypes
+    - Label:
+        default: "API Gateway Configuration (Required)"
+      Parameters:
+      - ApiGatewayId
+      - RootResourceId
+      - ApiGatewayStageName
+      - DeployToStage
+    - Label:
+        default: "API Gateway Security (Optional - ApiKey and UsagePlan creation not required.  Leave blank to skip)"
+      Parameters:
+      - SecureWithApiKey
+      - ApiDefaultKeyName
+      - ApiDefaultUsagePlanName
+
+Conditions:
+  CreateLambdaInVpc : !Not [ !Or [ !Equals [!Select [0, !Ref MyriadVpcSubnetIds], ""], !Equals [!Select [0, !Ref MyriadVpcSecurityGroupIds], ""] ] ]
+  DeployApi: !Equals [true, !Ref DeployToStage]
+  CreateKey: !Not [ !Equals [ !Ref ApiDefaultKeyName, "" ] ]
+  CreateUsagePlan: !Not [ !Equals [ !Ref ApiDefaultUsagePlanName, "" ] ]
+  CreateUsagePlanKey: !And [ !Condition CreateKey, !Condition CreateUsagePlan ]
+    
+Resources: 
+  ##### Core Lambda Function
+  MyriadCoreFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref MyriadCoreFunctionName
+      Description: Processes incoming search & encryption requests for MyriAD.
+      Role: !Ref LambdaCoreRoleArn
+      Code:
+        S3Bucket: !Ref MyriadCodeBucketName
+        S3Key: !Ref MyriadCodeBucketKey
+      Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
+      Runtime: dotnetcore3.1
+      Timeout: 600
+      VpcConfig:
+        !If
+          - CreateLambdaInVpc
+          -
+            SecurityGroupIds: !Ref MyriadVpcSecurityGroupIds
+            SubnetIds: !Ref MyriadVpcSubnetIds
+          - !Ref "AWS::NoValue"
+      Environment:
+        Variables:
+          DEFAULT_CONFIG: !Ref MyriadEnvDefaultConfig
+          DOMAIN_MAPPINGS: !Ref MyriadEnvDomainMapping
+          RETURN_TYPES: !Ref MyriadEnvReturnTypes
+
+  # API Gateway - Resources
+  SearchResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !Ref RootResourceId
+      PathPart: search
+
+  ObjectTypeResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !Ref RootResourceId
+      PathPart: "{type}"
+
+  ObjectValueResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ParentId: !Ref ObjectTypeResource
+      PathPart: "{value+}"
+
+  # API Gateway - Core Methods
+  SearchMethod:
+    Type:  AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !Ref SearchResource
+      HttpMethod: POST
+      # Method Request
+      ApiKeyRequired: !Ref SecureWithApiKey
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyriadCoreLambdaArn}/invocations"
+          - MyriadCoreLambdaArn: !GetAtt
+            - MyriadCoreFunction
+            - Arn
+        IntegrationResponses:
+        - StatusCode: 200          
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+
+  ObjectBasedMethod:
+    Type:  AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !Ref ObjectValueResource
+      HttpMethod: GET
+      # Method Request
+      ApiKeyRequired: !Ref SecureWithApiKey
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub 
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyriadCoreLambdaArn}/invocations"
+          - MyriadCoreLambdaArn: !GetAtt
+            - MyriadCoreFunction
+            - Arn
+        RequestTemplates:
+          application/json: |
+            #set($inputRoot = $input.path('$'))
+            #set($attrs = $method.request.multivaluequerystring.attr)
+            {"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$util.urlDecode($input.params('value'))"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}
+        IntegrationResponses:
+        - StatusCode: 200          
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+
+  # API Gateway - Grant Permission To Call Each Lambda Function
+  MyriadCoreLambdaPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt
+        - MyriadCoreFunction
+        - Arn
+      Action: "lambda:InvokeFunction"
+      Principal: apigateway.amazonaws.com
+      SourceArn: { "Fn::Join": [ "", [ "arn:aws:execute-api:", { "Ref": "AWS::Region" }, ":", { "Ref": "AWS::AccountId" }, ":", { "Ref" : "ApiGatewayId" } , "/*/*/*" ] ] }            
+
+  # API Gateway - Create Api Keys and Usage Plans
+  MyriadDefaultApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Condition: CreateKey
+    DependsOn:
+    - MyriadDeployment
+    Properties: 
+      Description: Default Key For Accessing Myriad API Methods.
+      Enabled: true
+      Name: !Ref ApiDefaultKeyName
+      StageKeys: 
+        - RestApiId: !Ref ApiGatewayId
+          StageName: !Ref ApiGatewayStageName
+
+  MyriadDefaultUsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Condition: CreateUsagePlan
+    DependsOn:
+    - MyriadDeployment
+    Properties: 
+      ApiStages: 
+        - ApiId: !Ref ApiGatewayId
+          Stage: !Ref ApiGatewayStageName
+      Description: Default Usage Plan for Myriad (No Limits)
+      UsagePlanName: !Ref ApiDefaultUsagePlanName
+
+  MyriadDefaultUsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Condition: CreateUsagePlanKey
+    Properties: 
+      KeyId: !Ref MyriadDefaultApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref MyriadDefaultUsagePlan
+
+  # API Gateway - Deploy To Stage
+  # *********************************************************************
+  # ***** Don't Forget To Update DependsOn When Adding More Methods *****
+  # *********************************************************************
+  MyriadDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Condition: DeployApi
+    DependsOn: 
+    - SearchMethod
+    - ObjectBasedMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      StageName: !Ref ApiGatewayStageName
+
+Outputs:
+  Version:
+    Description: Cloud Formation Template Version
+    Value: 0.1.21158.0
+
+  StackName:
+    Description: The name of this stack.
+    Value:  !Ref AWS::StackName
+
+  # Api Gateway Details
+  MyriadBaseUrl:
+    Description: The base URL for Myriad deployed by this template.
+    Value: { "Fn::Join": [ "", [ "https://", { "Ref" : "ApiGatewayId" }, ".execute-api.", { "Ref": "AWS::Region" }, ".amazonaws.com/", { "Ref": "ApiGatewayStageName" }, "/" ] ] }
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadBaseUrl"
