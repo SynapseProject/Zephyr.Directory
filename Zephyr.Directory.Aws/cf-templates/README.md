@@ -1,5 +1,5 @@
 # Myriad
-## Cloud Formation Templates
+## Cloud Formation Core Template
 
 The cloud formation template "cft-myriad-core.yaml" creates all the necessary resources required to run MyriAD in your AWS account.  It assumes you are running the template with a policy that has the permissions to create the resources necessary (listed below).  The policy document can be found in the "policies" directory.
 
@@ -60,7 +60,7 @@ The cloud formation template "cft-myriad-core.yaml" creates all the necessary re
 
 ## Prerequesites For Running Core Template
 
-The core cloud formation template expects a few items to have been created before calling it.  All of the items below can be created by running the cft-myriad-init.yaml template, or can be created from the AWS console.
+The core cloud formation template expects a few items to have been created before calling it.  All of the items below can be created by running the [cft-myriad-init.yaml](#cloud-formation-init-template) template, or can be created from the AWS console.
 
 - **Lambda Execution IAM Role** - This role should have, at a minimum the following policies attached to it :
     - arn:aws:iam::aws:policy/AWSLambdaExecute
@@ -110,6 +110,8 @@ Below is the list of variables needed to run the core cloud formation template, 
 
 ## JSON Configuration Objects
 
+The following JSON Objects are used in the [LDAP Configuration](#ldap-configuration) variable section above.  
+
 ### LDAP Config
 *Saves in DEFAULT_CONFIG environment variable*
 ```json
@@ -149,3 +151,49 @@ Valid values are (String, StringArray, Bytes, BytesArray, Guid or Sid)*
     "msRTCSIP-UserPolicies":"BytesArray"
 }
 ```
+
+## Cloud Formation Init Template
+
+The cloud formation template "cft-myriad-init.yaml" creates one or more of the prerequisite cloud resources needed by the core cloud formation template.   There is absolutely no requirement that you use this template to create these resources, as you can use any or all resources that have already been created in another manner.   The only requirement is that the resources meet the [prerequesites](#prerequesites-for-running-core-template).
+
+The init template can create the following objects for you : 
+
+### Lambda Execution IAM Role
+
+The core template requires the Amazon Resource Name (ARN) of an IAM Role under which to execute the core lambda functions.  Here are the template variables for creating the IAM Role : 
+
+| Variable Name | Required | Description
+| ------------- | -------- | -----------
+| MyriadCoreRoleName | No | The name of the role you wish to create (Leave blank to skip creating a role.)
+| PolicyPermissionBoundry | No | The ARN for the boundary policy to be added to the created role (if one is required or desired.)
+
+
+### Rest Api Gateway
+
+The core template requires a Rest Api Gateway where the required methods and resources will be deployed.  This section will create an API Gateway and a dummy "Hello World" GET method at the root.  Here are the template variables for creating an API Gateway :
+
+| Variable Name | Required | Description
+| ------------- | -------- | -----------
+| RestApiName | No | The name of the API Gateway you wish to create (Leave blank to skip creating an API Gateway.)
+
+
+### EC2 Security Group
+
+Finally, if you will be deploying your core lambda functions into a VPC, the core template will require an EC2 Security Group to apply to the lambda function within that VPC.  Here are the template variables for creating an EC2 Security Group for use by a lambda function running inside of a VPC : 
+
+| Variable Name | Required | Description
+| ------------- | -------- | -----------
+| DefaultSecurityGroupName | No | The name of the security group to create.  (Leave blank to skip creating a security group.)
+| DefaultSecurityGroupVpcId | No | The VPC into which the security group should be created.
+
+
+### Template Outputs
+
+The outputs from the init template will be needed as inputs into the core template.   Below if a description of each potential output from the init template (assuming the object was created by the template of course) that is used as input into the core template.
+
+| Variable Name | Export Name | Core Template Input Variable
+| ------------- | ----------- | ----------------------------
+| ApiGateway | (STACK NAME)-MyriadApiGateway | ApiGatewayId
+| RootResourceId | (STACK NAME)-RootResourceId | RootResourceId
+| DefaultVPCSecurityGroupId | (STACK NAME)-MyriadDefaultVpcSG | MyriadVpcSecurityGroupIds
+| LambdaRoleArn | (STACK NAME)-MyriadCoreRoleArn | LambdaCoreRoleArn
