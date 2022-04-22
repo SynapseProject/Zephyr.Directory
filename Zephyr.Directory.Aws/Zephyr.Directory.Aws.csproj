@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Deterministic>False</Deterministic>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <Configurations>Release;Debug</Configurations>
   </PropertyGroup>
 
@@ -19,12 +21,30 @@
           <workingdir>${ProjectDir}/bin/Release/netcoreapp3.1/</workingdir>
           <externalConsole>True</externalConsole>
         </Command>
+        <Command>
+          <type>BeforeBuild</type>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}
+</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+        </Command>
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <CustomCommands>
+      <CustomCommands>
+        <Command>
+          <type>BeforeBuild</type>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+        </Command>
       </CustomCommands>
     </CustomCommands>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
     <ProjectReference Include="..\Zephyr.Crypto\Zephyr.Crypto.csproj" />
+    <ProjectReference Include="..\Zephyr.Version\Zephyr.Version.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="AWSSDK.Lambda" />
