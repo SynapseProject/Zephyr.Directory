@@ -258,43 +258,43 @@ namespace Zephyr.Directory.Ldap
         public static string GetIdentitySearchString(LdapRequest request)
         {
             string identity = null;
+            string searchValue = request.SearchValue;
             Guid g = Guid.Empty;
             string dnRegexString = @"^\s*?(cn\s*=|ou\s*=|dc\s*=)";
 
-            try { g = Guid.Parse(request.SearchValue); } catch { }
+            if (ContainsKnownDomain(searchValue))
+            {
+                // Strip Out Known Domain and Search ( DOMAIN\value )
+                searchValue = searchValue.Replace('/', '\\');
+                searchValue = searchValue.Substring(searchValue.IndexOf('\\') + 1);
+            }
+
+            try { g = Guid.Parse(searchValue); } catch { }
 
             if (g != Guid.Empty)
             {
                 request.SearchBase = $"<GUID={g}>";
                 identity = $"(cn=*)";
             }
-            else if (SidUtils.IsSid(request.SearchValue))
+            else if (SidUtils.IsSid(searchValue))
             {
-                request.SearchBase = $"<SID={request.SearchValue}>";
+                request.SearchBase = $"<SID={searchValue}>";
                 identity = $"(cn=*)";
             }
-            else if (Regex.IsMatch(request.SearchValue, dnRegexString, RegexOptions.IgnoreCase))
-                identity = $"(distinguishedName={request.SearchValue})";
-            else if (request.SearchValue.Contains('@') && request.ObjectType == ObjectType.User)     // Technically, both the CN and Name could contain an @ symbol as well
-                identity = $"(|(cn={request.SearchValue})(name={request.SearchValue})(userPrincipalName={request.SearchValue}))";
+            else if (Regex.IsMatch(searchValue, dnRegexString, RegexOptions.IgnoreCase))
+                identity = $"(distinguishedName={searchValue})";
+            else if (searchValue.Contains('@') && request.ObjectType == ObjectType.User)     // Technically, both the CN and Name could contain an @ symbol as well
+                identity = $"(|(cn={searchValue})(name={searchValue})(userPrincipalName={searchValue}))";
             else
             {
-                string value = request.SearchValue;
-                if (ContainsKnownDomain(value))
-                {
-                    // Strip Out Known Domain and Search ( DOMAIN\value )
-                    value = value.Replace('/', '\\');
-                    value = value.Substring(value.IndexOf('\\') + 1);
-                }
-
                 if (request.ObjectType == ObjectType.Contact || request.ObjectType == ObjectType.Printer || request.ObjectType == ObjectType.Volume)
-                    identity = $"(|(cn={value})(name={value}))";
+                    identity = $"(|(cn={searchValue})(name={searchValue}))";
                 else if (request.ObjectType == ObjectType.Ou || request.ObjectType == ObjectType.OrganizationalUnit)
-                    identity = $"(|(ou={value})(name={value}))";
+                    identity = $"(|(ou={searchValue})(name={searchValue}))";
                 else if (request.ObjectType == ObjectType.Domain)
-                    identity = $"(name={value})";
+                    identity = $"(name={searchValue})";
                 else
-                    identity = $"(|(cn={value})(name={value})(sAMAccountName={value}))";
+                    identity = $"(|(cn={searchValue})(name={searchValue})(sAMAccountName={searchValue}))";
             }
 
             return identity;
