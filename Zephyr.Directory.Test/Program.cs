@@ -12,7 +12,8 @@ namespace Zephyr.Directory
     {
         static void Main(string[] args)
         {
-            string content = File.ReadAllText(@"/Users/guy/Desktop/myriad.json");
+
+            string content = File.ReadAllText(@"../../../TestFiles/myriad.json");
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
             Console.WriteLine(JsonTools.Serialize(request, true));
 

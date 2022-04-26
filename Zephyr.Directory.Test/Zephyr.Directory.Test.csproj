@@ -8,4 +8,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="TestFiles\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TestFiles\" />
+  </ItemGroup>
 </Project>
