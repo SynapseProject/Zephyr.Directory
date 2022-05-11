@@ -287,7 +287,7 @@ namespace Zephyr.Directory.Ldap
                 identity = $"(|(cn={searchValue})(name={searchValue})(userPrincipalName={searchValue}))";
             else
             {
-                if (request.ObjectType == ObjectType.Contact || request.ObjectType == ObjectType.Printer || request.ObjectType == ObjectType.Volume)
+                if (request.ObjectType == ObjectType.Contact || request.ObjectType == ObjectType.Printer || request.ObjectType == ObjectType.PrintQueue || request.ObjectType == ObjectType.Volume)
                     identity = $"(|(cn={searchValue})(name={searchValue}))";
                 else if (request.ObjectType == ObjectType.Ou || request.ObjectType == ObjectType.OrganizationalUnit)
                     identity = $"(|(ou={searchValue})(name={searchValue}))";
