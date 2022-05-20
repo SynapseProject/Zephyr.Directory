@@ -64,18 +64,23 @@ namespace Zephyr.Directory.Ldap
         public static string GetDomainShortName(string sAMAccountName)
         {
             string domain = null;
-            string ntid = sAMAccountName.Replace('/', '\\');
-            if (ntid.Contains('\\'))
-                domain = ntid.Substring(0, ntid.IndexOf('\\'));
-
+            if (!String.IsNullOrEmpty(sAMAccountName))
+            {
+                string ntid = sAMAccountName.Replace('/', '\\');
+                if (ntid.Contains('\\'))
+                    domain = ntid.Substring(0, ntid.IndexOf('\\'));
+            }
             return domain;
         }
 
         public static string GetDomainNameFromUPN(string username)
         {
             string domain = null;
-            if (username.Contains('@'))
-                domain = username.Substring(username.LastIndexOf('@') + 1);
+            if (!String.IsNullOrWhiteSpace(username))
+            {
+                if (username.Contains('@'))
+                    domain = username.Substring(username.LastIndexOf('@') + 1);
+            }
             return domain;
         }
 
@@ -100,33 +105,36 @@ namespace Zephyr.Directory.Ldap
                 }
 
                 // Get Values From Search Value
-                string domainKey = null;
-                LdapConfig svConfig = null;
-
-                // Check For Domain Short Name (DOMAIN\\sAMAccountName)
-                if (svConfig == null)
+                if (!String.IsNullOrWhiteSpace(request.SearchValue))
                 {
-                    domainKey = GetDomainShortName(request.SearchValue);
-                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
-                }
+                    string domainKey = null;
+                    LdapConfig svConfig = null;
 
-                // Check For Domain from UserPrincipal Name (user@domain)
-                if (svConfig == null)
-                {
-                    domainKey = GetDomainNameFromUPN(request.SearchValue);
-                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
-                }
+                    // Check For Domain Short Name (DOMAIN\\sAMAccountName)
+                    if (svConfig == null)
+                    {
+                        domainKey = GetDomainShortName(request.SearchValue);
+                        svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                    }
 
-                // Check For Domain from DistinguishedName
-                if (svConfig == null)
-                {
-                    domainKey = GetDomainName(request.SearchValue);
-                    svConfig = GetConfigProfileFromMap(configMap, domainKey);
-                }
+                    // Check For Domain from UserPrincipal Name (user@domain)
+                    if (svConfig == null)
+                    {
+                        domainKey = GetDomainNameFromUPN(request.SearchValue);
+                        svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                    }
 
-                // If Domain Found From Search Value, Apply It
-                if (svConfig != null)
-                    SetConfigValues(config, svConfig);
+                    // Check For Domain from DistinguishedName
+                    if (svConfig == null)
+                    {
+                        domainKey = GetDomainName(request.SearchValue);
+                        svConfig = GetConfigProfileFromMap(configMap, domainKey);
+                    }
+
+                    // If Domain Found From Search Value, Apply It
+                    if (svConfig != null)
+                        SetConfigValues(config, svConfig);
+                }
             }
 
             // Get Values From Default Environment Variable (DEFAULT_CONFIG)

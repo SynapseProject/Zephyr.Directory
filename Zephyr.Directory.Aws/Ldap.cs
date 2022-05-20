@@ -16,14 +16,21 @@ namespace Zephyr.Directory.Aws
         {
             LdapResponse response = new LdapResponse();
             bool isEncryptionRequest = request.Crypto?.Text != null;
+            bool isPing = request.Ping.HasValue;
 
-            if (!isEncryptionRequest)
+            if (!isEncryptionRequest && !isPing)
                 Console.WriteLine("REQUEST - " + JsonTools.Serialize(request, false));
 
             if (isEncryptionRequest)
             {
                 LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
                 response.Message = Rijndael.Encrypt(crypto.Text, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
+            }
+            else if (isPing)
+            {
+                response.Message = "Hello From MyriAD.";
+                if (request.Ping == PingType.Echo)
+                    Console.WriteLine("Ping");
             }
             else
             {
@@ -36,7 +43,7 @@ namespace Zephyr.Directory.Aws
                 ldap.Disconnect();
             }
 
-            if (!isEncryptionRequest)
+            if (!isEncryptionRequest && !isPing)
                 Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false));
 
             return response;

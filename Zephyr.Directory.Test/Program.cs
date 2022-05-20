@@ -17,12 +17,20 @@ namespace Zephyr.Directory
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
             Console.WriteLine(JsonTools.Serialize(request, true));
 
+            bool isPing = request.Ping.HasValue;
+
             LdapResponse response = new LdapResponse();
 
             if (request.Crypto?.Text != null)
             {
                 LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
                 response.Message = Rijndael.Encrypt(request.Crypto.Text, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector);
+            }
+            else if (isPing)
+            {
+                response.Message = "Hello From MyriAD.";
+                if (request.Ping == PingType.Echo)
+                    Console.WriteLine("Ping");
             }
             else
             {

@@ -125,6 +125,9 @@ namespace Zephyr.Directory.Ldap
 
             try
             {
+                if (String.IsNullOrWhiteSpace(searchFilter))
+                    throw new Exception("Search Filter Not Provided");
+
                 if (!conn.Connected)
                 {
                     response.Message = $"Server {this} Is Not Connected.";

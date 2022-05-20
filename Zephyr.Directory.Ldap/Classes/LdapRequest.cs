@@ -23,6 +23,12 @@ namespace Zephyr.Directory.Ldap
         DomainController        // (&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))
     }
 
+    public enum PingType
+    {
+        Echo,
+        NoEcho
+    }
+
     public class LdapRequest
     {
         [JsonConverter(typeof(StringEnumConverter))]
@@ -43,5 +49,9 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "crypto", NullValueHandling = NullValueHandling.Ignore)]
         public LdapCrypto Crypto { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty(PropertyName = "ping", NullValueHandling = NullValueHandling.Ignore)]
+        public PingType? Ping { get; set; }
     }
 }
