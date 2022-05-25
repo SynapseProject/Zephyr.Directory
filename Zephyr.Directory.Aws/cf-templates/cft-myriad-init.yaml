@@ -65,29 +65,6 @@ Resources:
         Types:
         - REGIONAL
 
-  # API Gateway Default Method
-  HelloWorldMethod:
-    Type: AWS::ApiGateway::Method
-    Condition: CreateRestApi
-    Properties:
-      RestApiId: !Ref RestApi
-      ResourceId: { "Fn::GetAtt": ["RestApi", "RootResourceId"] }
-      HttpMethod: GET
-      AuthorizationType: NONE
-      Integration:
-        Type: MOCK
-        RequestTemplates:
-          application/json: "{'statusCode': 200}"
-        IntegrationResponses:
-        - StatusCode: 200
-          ResponseTemplates:
-            application/json: "{\"message\": \"Hello From MyriAD.\"}"
-            text/html: Hello From MyriAD.
-      MethodResponses:
-      - StatusCode: 200
-        ResponseModels:
-          application/json: Empty
-
   ### Default Security Group
   MyriadDefaultSecurityGroup:
     Type: AWS::EC2::SecurityGroup

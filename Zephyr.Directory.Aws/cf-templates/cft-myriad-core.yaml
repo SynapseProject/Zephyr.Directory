@@ -166,6 +166,33 @@ Resources:
       PathPart: "{value+}"
 
   # API Gateway - Core Methods
+  PingMethod:
+    Type:  AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayId
+      ResourceId: !Ref RootResourceId
+      HttpMethod: GET
+      # Method Request
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyriadCoreLambdaArn}/invocations"
+          - MyriadCoreLambdaArn: !GetAtt
+            - MyriadCoreFunction
+            - Arn
+        RequestTemplates:
+          application/json: |
+            { "ping": "Echo" }
+        IntegrationResponses:
+        - StatusCode: 200          
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+
   SearchMethod:
     Type:  AWS::ApiGateway::Method
     Properties:
@@ -274,6 +301,7 @@ Resources:
     DependsOn: 
     - SearchMethod
     - ObjectBasedMethod
+    - PingMethod
     Properties:
       RestApiId: !Ref ApiGatewayId
       StageName: !Ref ApiGatewayStageName
