@@ -35,6 +35,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "objectType", NullValueHandling = NullValueHandling.Ignore)]
         public ObjectType? ObjectType { get; set; }
 
+        [JsonProperty(PropertyName = "domain", NullValueHandling = NullValueHandling.Ignore)]
+        public string Domain { get; set; }
+
         [JsonProperty(PropertyName = "searchValue", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchValue { get; set; }
 

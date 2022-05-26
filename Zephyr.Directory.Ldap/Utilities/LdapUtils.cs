@@ -93,8 +93,24 @@ namespace Zephyr.Directory.Ldap
             if (request.Config != null)
                 SetConfigValues(config, request.Config);
 
+            // Use Provided Domain Information
+            if (request.Domain != null)
+            {
+                LdapConfig dmConfig = null;
+                if (configMap != default(Dictionary<string, string>))
+                    dmConfig = GetConfigProfileFromMap(configMap, request.Domain);
+
+                if (dmConfig == null)
+                    dmConfig = LdapUtils.GetEnvironmentVariableJson<LdapConfig>(request.Domain.ToUpper());
+
+                if (dmConfig != null)
+                    SetConfigValues(config, dmConfig);
+
+                //TODO : Throw Error Since Provided Domain Not Found????
+            }
+
             // Determine Domain Config From Request Values
-            if (configMap != default(Dictionary<string,string>))
+            else if (configMap != default(Dictionary<string,string>))
             {
                 // Get Values From Request Search Base
                 if (request.SearchBase != null)
