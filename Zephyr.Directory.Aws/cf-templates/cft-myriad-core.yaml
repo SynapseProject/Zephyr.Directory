@@ -238,7 +238,8 @@ Resources:
           application/json: |
             #set($inputRoot = $input.path('$'))
             #set($attrs = $method.request.multivaluequerystring.attr)
-            {"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$util.urlDecode($input.params('value'))"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}
+            #set($domain = $method.request.querystring.domain)
+            {#if($domain)"domain": "$domain",#end"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$util.urlDecode($input.params('value'))"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}
         IntegrationResponses:
         - StatusCode: 200          
       MethodResponses:
