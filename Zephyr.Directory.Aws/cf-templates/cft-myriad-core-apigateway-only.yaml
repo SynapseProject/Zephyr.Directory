@@ -107,9 +107,7 @@ Resources:
         IntegrationHttpMethod: POST
         Uri: !Sub
           - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyriadCoreLambdaArn}/invocations"
-          - MyriadCoreLambdaArn: !GetAtt
-            - MyriadCoreFunction
-            - Arn
+          - MyriadCoreLambdaArn: !Ref MyriadCoreFunctionArn
         RequestTemplates:
           application/json: |
             { "ping": "Echo" }
@@ -162,8 +160,8 @@ Resources:
             #set($inputRoot = $input.path('$'))
             #set($attrs = $method.request.multivaluequerystring.attr)
             #set($domain = $method.request.querystring.domain)
-            {#if($domain!="")"domain": "$domain",#end"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$util.urlDecode($input.params('value'))"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}
-        IntegrationResponses:
+            #set($searchValue = $util.escapeJavaScript($util.urlDecode($input.params('value'))))
+            {#if($domain != "")"domain": "$domain",#end"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$searchValue"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}        IntegrationResponses:
         - StatusCode: 200          
       MethodResponses:
       - StatusCode: 200
@@ -231,7 +229,7 @@ Resources:
 Outputs:
   Version:
     Description: Cloud Formation Template Version
-    Value: 1.0.22222.0
+    Value: 1.0.22223.0
 
   StackName:
     Description: The name of this stack.

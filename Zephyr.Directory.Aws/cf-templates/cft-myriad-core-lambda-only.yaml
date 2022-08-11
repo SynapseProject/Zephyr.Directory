@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the necessary lambda functions for the MyriAD application.
+Parameters:
+  ##### Lambda Function IAM Roles #####
+  LambdaCoreRoleArn:
+    Type: String
+    Description: (Required) The arn of the role to be used with the core lambda function. (arn:aws:iam::############:role/role-name)
+
+  ##### Lambda Function DotNet Core Code Locations
+  MyriadCodeBucketName:
+    Type: String
+    Description: (Required) The S3 bucket where the DotNet Core code is located.
+  MyriadCodeBucketKey:
+    Type: String
+    Description: (Required) The S3 Key for the zip file containing the lambda DotNet Core code.
+
+  ##### Lambda VPC Configuration
+  MyriadVpcSubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of VPC Subnet Ids to deploy the Lambda into. (subnet-00000000000000001,subnet-00000000000000002,subnet-00000000000000003)
+  MyriadVpcSecurityGroupIds:
+    Type: CommaDelimitedList
+    Description: Comma Delimited List of Security Groups to apply to the VPC instances. (sg-00000000000000001)
+
+  ##### Lambda Function Names
+  MyriadCoreFunctionName:
+    Type: String
+    Default: myriad-core
+    Description: (Required) The name for the function that processes the requests.
+
+  ##### Lambda Environment Variables
+  MyriadEnvDefaultConfig:
+    Type: String
+    Description: Default LDAP Configuration (DEFAULT_CONFIG).
+  MyriadEnvDomainMapping:
+    Type: String
+    Description: Maps Domains and Domain Short Names To LDAP Configurations.
+  MyriadEnvReturnTypes:
+    Type: String
+    Description: Maps LDAP Attributes To Correct Return Types (String, StringArray, Bytes, BytesArray, Guid or Sid).
+
+
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Lambda Deployment Configuration (Required)"
+      Parameters:
+      - MyriadCodeBucketName
+      - MyriadCodeBucketKey
+      - LambdaCoreRoleArn
+      - MyriadCoreFunctionName
+    - Label:
+        default: "Lambda VPC Deployment Targets (Optional - Leave both blank for deployments not tied to a VPC)"
+      Parameters:
+      - MyriadVpcSubnetIds
+      - MyriadVpcSecurityGroupIds
+    - Label:
+        default: "LDAP Server Configuration"
+      Parameters:
+      - MyriadEnvDefaultConfig
+      - MyriadEnvDomainMapping
+      - MyriadEnvReturnTypes
+
+Conditions:
+  CreateLambdaInVpc : !Not [ !Or [ !Equals [!Select [0, !Ref MyriadVpcSubnetIds], ""], !Equals [!Select [0, !Ref MyriadVpcSecurityGroupIds], ""] ] ]
+    
+Resources: 
+  ##### Core Lambda Function
+  MyriadCoreFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref MyriadCoreFunctionName
+      Description: Processes incoming search & encryption requests for MyriAD.
+      Role: !Ref LambdaCoreRoleArn
+      Code:
+        S3Bucket: !Ref MyriadCodeBucketName
+        S3Key: !Ref MyriadCodeBucketKey
+      Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
+      Runtime: dotnetcore3.1
+      Timeout: 600
+      VpcConfig:
+        !If
+          - CreateLambdaInVpc
+          -
+            SecurityGroupIds: !Ref MyriadVpcSecurityGroupIds
+            SubnetIds: !Ref MyriadVpcSubnetIds
+          - !Ref "AWS::NoValue"
+      Environment:
+        Variables:
+          DEFAULT_CONFIG: !Ref MyriadEnvDefaultConfig
+          DOMAIN_MAPPINGS: !Ref MyriadEnvDomainMapping
+          RETURN_TYPES: !Ref MyriadEnvReturnTypes
+
+
+Outputs:
+  Version:
+    Description: Cloud Formation Template Version
+    Value: 1.0.22223.0
+
+  StackName:
+    Description: The name of this stack.
+    Value:  !Ref AWS::StackName
+
+  MyriadCoreFunctionArn:
+    Description: The ARN of the lambda function that performs LDAP Searches.
+    Value: !GetAtt
+        - MyriadCoreFunction
+        - Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-MyriadCoreFunctionArn"
