@@ -20,7 +20,9 @@ namespace Zephyr.Directory.Ldap
         Computer,
         Volume,                 // Shared Folder
         Domain,
-        DomainController        // (&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))
+        DomainController,       // (&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192))
+        Dn,                     // Shorthand for DistinguishedName
+        DistinguishedName       // Returns object by DistinguishedName
     }
 
     public enum PingType
@@ -43,6 +45,9 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
+
+        [JsonProperty(PropertyName = "wildcardSearch", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? WildcardSearch { get; set; }
 
         [JsonProperty(PropertyName = "attributes", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> Attributes { get; set; }    // null = ALL, empty list = NONE

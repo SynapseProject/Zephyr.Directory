@@ -272,6 +272,8 @@ namespace Zephyr.Directory.Ldap
                     searchFilter = $"(&(objectCategory=computer)(userAccountControl:1.2.840.113556.1.4.803:=8192){id})";
                 else if (request.ObjectType == ObjectType.Printer)
                     searchFilter = $"(&(objectCategory=PrintQueue){id})";
+                else if (request.ObjectType == ObjectType.Dn || request.ObjectType == ObjectType.DistinguishedName)
+                    searchFilter = id;
                 else
                     searchFilter = $"(&(objectCategory={request.ObjectType.Value}){id})";
             }
@@ -292,6 +294,13 @@ namespace Zephyr.Directory.Ldap
                 searchValue = searchValue.Replace('/', '\\');
                 searchValue = searchValue.Substring(searchValue.IndexOf('\\') + 1);
             }
+
+            // LDAP Escape the Search Value
+            searchValue = searchValue.Replace(@"\", @"\5C");        // Escape the Backslash
+            searchValue = searchValue.Replace(@"(", @"\28");        // Escape the Open Parenthesis
+            searchValue = searchValue.Replace(@")", @"\29");        // Escape the Close Parenthesis
+            if (request.ObjectType == ObjectType.Dn || request.ObjectType == ObjectType.DistinguishedName || (request.WildcardSearch.HasValue && request.WildcardSearch.Value == false))
+                searchValue = searchValue.Replace(@"*", @"\2A");    // Escape the Asterisk
 
             try { g = Guid.Parse(searchValue); } catch { }
 
