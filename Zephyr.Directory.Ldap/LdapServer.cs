@@ -21,6 +21,7 @@ namespace Zephyr.Directory.Ldap
         public int Port { get; set; }
         public bool UseSSL { get; set; }
         public int MaxResults { get; set; } = 1000;
+        public int MaxRetries { get; set; } = 0;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         // Known Active Directory Attributes That Do Not Default To "String" For Their Values.
@@ -50,12 +51,12 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxResults, attributeReturnTypes);
+            init(server, port, useSSL, maxResults, maxRetries, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -66,13 +67,15 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
             if (maxResults != null)
                 this.MaxResults = maxResults.Value;
+            if (maxRetries != null)
+                this.MaxRetries = maxRetries.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -88,8 +91,29 @@ namespace Zephyr.Directory.Ldap
             if (this.UseSSL)
                 conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
 
-            this.Connect();
-            consts = conn.SearchConstraints;
+            int attempts = 0;
+
+            Exception connError = null;
+            while (attempts <= this.MaxRetries && !conn.Connected)
+            {
+                try
+                {
+                    this.Connect();
+                    consts = conn.SearchConstraints;
+                }
+                catch (Exception e)
+                {
+                    attempts++;
+                    connError = e;
+                    Console.WriteLine($"ERROR - Ldap Connection Failed.  {e.Message} - {e.ToString()}");
+                }
+            }
+
+            if (!conn.Connected && connError != null)
+            {
+                Console.WriteLine("ERROR - Max Connection Attemps Reached.");
+                throw connError;
+            }
         }
 
         public void Connect()
@@ -239,6 +263,16 @@ namespace Zephyr.Directory.Ldap
                     continue;
                 }
             }
+
+            return response;
+        }
+
+        static public LdapResponse ReturnError(Exception e, LdapConfig config)
+        {
+            LdapResponse response = new LdapResponse();
+            response.Success = false;
+            response.Server = config.Server;
+            response.Message = $"{e.Message} - {e.ToString()}";
 
             return response;
         }

@@ -38,6 +38,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "maxResults", NullValueHandling = NullValueHandling.Ignore)]
         public int? MaxResults { get; set; }
 
+        [JsonProperty(PropertyName = "maxRetries", NullValueHandling = NullValueHandling.Ignore)]
+        public int? MaxRetries { get; set; }
+
         [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
         public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
 

@@ -206,6 +206,9 @@ namespace Zephyr.Directory.Ldap
             if (target.MaxResults == null)
                 target.MaxResults = source.MaxResults;
 
+            if (target.MaxRetries == null)
+                target.MaxRetries = source.MaxRetries;
+
             return target;
         }
 
