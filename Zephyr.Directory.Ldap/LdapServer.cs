@@ -13,7 +13,7 @@ using Novell.Directory.Ldap.Utilclass;
 
 namespace Zephyr.Directory.Ldap
 {
-    public class LdapServer
+    public partial class LdapServer
     {
         LdapConnection conn;
 
@@ -23,31 +23,6 @@ namespace Zephyr.Directory.Ldap
         public int MaxResults { get; set; } = 1000;
         public int MaxRetries { get; set; } = 0;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
-
-        // Known Active Directory Attributes That Do Not Default To "String" For Their Values.
-        // These can be overridden in the config section.
-        private static readonly Dictionary<string, LdapAttributeTypes> DefaultTypes = new Dictionary<string, LdapAttributeTypes>()
-        {
-            { "objectClass", LdapAttributeTypes.StringArray },
-            { "managedObjects", LdapAttributeTypes.StringArray },
-            { "dSCorePropagationData", LdapAttributeTypes.StringArray },
-            { "objectGUID", LdapAttributeTypes.Guid },
-            { "objectSid", LdapAttributeTypes.Sid },
-            { "member", LdapAttributeTypes.StringArray },
-            { "memberOf", LdapAttributeTypes.StringArray },
-            { "proxyAddresses", LdapAttributeTypes.StringArray },
-            { "businessCategory", LdapAttributeTypes.StringArray },
-            { "otherHomePhone", LdapAttributeTypes.StringArray },
-            { "otherPager", LdapAttributeTypes.StringArray },
-            { "otherFacsimileTelephoneNumber", LdapAttributeTypes.StringArray },
-            { "otherMobile", LdapAttributeTypes.StringArray },
-            { "otherIpPhone", LdapAttributeTypes.StringArray },
-            { "secretary", LdapAttributeTypes.StringArray },
-            { "servicePrincipalName", LdapAttributeTypes.StringArray },
-            { "subRefs", LdapAttributeTypes.StringArray },
-            { "wellKnownObjects", LdapAttributeTypes.StringArray },
-            { "otherWellKnownObjects", LdapAttributeTypes.StringArray },
-        };
 
         public LdapServer(LdapConfig config)
         {
@@ -88,8 +63,10 @@ namespace Zephyr.Directory.Ldap
 
             conn.SecureSocketLayer = this.UseSSL;
             LdapSearchConstraints consts = conn.SearchConstraints;
+#pragma warning disable CS0618 // Type or member is obsolete
             if (this.UseSSL)
                 conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
+#pragma warning restore CS0618 // Type or member is obsolete
 
             int attempts = 0;
 
@@ -246,7 +223,7 @@ namespace Zephyr.Directory.Ldap
                                 rec.Attributes.Add(key, attribute.StringValueArray);
                                 break;
                             default:
-                                rec.Attributes.Add(key, attribute.StringValue);
+                                AddDefaultValue(rec, key, attribute);
                                 break;
 
                         }
@@ -265,6 +242,20 @@ namespace Zephyr.Directory.Ldap
             }
 
             return response;
+        }
+
+        private void AddDefaultValue(LdapObject rec, string key, LdapAttribute attribute)
+        {
+            string value = attribute.StringValue;
+            object obj = null;
+
+            try { obj = int.Parse(value); } catch { }
+            if (obj == null)
+                try { obj = bool.Parse(value); } catch { }
+            if (obj == null)
+                obj = value;
+
+            rec.Attributes.Add(key, obj);
         }
 
         static public LdapResponse ReturnError(Exception e, LdapConfig config)
