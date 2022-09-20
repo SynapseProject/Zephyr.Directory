@@ -55,10 +55,6 @@ namespace Zephyr.Directory.Ldap
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
 
-            foreach (string key in DefaultTypes.Keys)
-                if (!(this.ReturnTypes.ContainsKey(key)))
-                    this.ReturnTypes.Add(key, DefaultTypes[key]);
-
             this.conn = new LdapConnection();
 
             conn.SecureSocketLayer = this.UseSSL;
@@ -193,9 +189,12 @@ namespace Zephyr.Directory.Ldap
                     {
                         LdapAttribute attribute = attributes[key];
 
-                        LdapAttributeTypes attrType = LdapAttributeTypes.String;
+                        // TODO : Check Types In Environment Variables
+                        LdapAttributeTypes attrType = LdapAttributeTypes.Unknown;
                         if (this.ReturnTypes.ContainsKey(key))
                             attrType = this.ReturnTypes[key];
+                        else if (DefaultTypes.ContainsKey(key))
+                            attrType = DefaultTypes[key];
 
                         switch (attrType)
                         {
@@ -216,14 +215,59 @@ namespace Zephyr.Directory.Ldap
                             case LdapAttributeTypes.Guid:
                                 rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
                                 break;
+                            case LdapAttributeTypes.GuidArray:
+                                List<string> guids = new List<string>();
+                                foreach (string guid in attribute.StringValueArray)
+                                {
+                                    string g = new Guid(guid).ToString();
+                                    guids.Add(g);
+                                }
+                                rec.Attributes.Add(key, guids);
+                                break;
                             case LdapAttributeTypes.Sid:
                                 rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
+                                break;
+                            case LdapAttributeTypes.SidArray:
+                                List<string> sids = new List<string>();
+                                foreach (byte[] sid in attribute.ByteValueArray)
+                                {
+                                    string s = SidUtils.ConvertByteToStringSid(sid);
+                                    sids.Add(s);
+                                }
+                                rec.Attributes.Add(key, sids);
+                                break;
+                            case LdapAttributeTypes.String:
+                                rec.Attributes.Add(key, attribute.StringValue);
                                 break;
                             case LdapAttributeTypes.StringArray:
                                 rec.Attributes.Add(key, attribute.StringValueArray);
                                 break;
+                            case LdapAttributeTypes.Number:
+                                rec.Attributes.Add(key, long.Parse(attribute.StringValue));
+                                break;
+                            case LdapAttributeTypes.NumberArray:
+                                List<long> numbers = new List<long>();
+                                foreach (string num in attribute.StringValueArray)
+                                {
+                                    long l = long.Parse(num);
+                                    numbers.Add(l);
+                                }
+                                rec.Attributes.Add(key, numbers);
+                                break;
+                            case LdapAttributeTypes.Boolean:
+                                rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
+                                break;
+                            case LdapAttributeTypes.BooleanArray:
+                                List<bool> bools = new List<bool>();
+                                foreach (string bv in attribute.StringValueArray)
+                                {
+                                    bool b = bool.Parse(bv);
+                                    bools.Add(b);
+                                }
+                                rec.Attributes.Add(key, bools);
+                                break;
                             default:
-                                AddDefaultValue(rec, key, attribute);
+                                AddValueWithUnknownType(rec, key, attribute);
                                 break;
 
                         }
@@ -244,8 +288,9 @@ namespace Zephyr.Directory.Ldap
             return response;
         }
 
-        private void AddDefaultValue(LdapObject rec, string key, LdapAttribute attribute)
+        private void AddValueWithUnknownType(LdapObject rec, string key, LdapAttribute attribute)
         {
+            // TODO: Check for multi-values, GUID, SID, etc...
             string value = attribute.StringValue;
             object obj = null;
 
