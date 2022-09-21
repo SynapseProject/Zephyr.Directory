@@ -217,7 +217,7 @@ namespace Zephyr.Directory.Ldap
                                 break;
                             case LdapAttributeTypes.GuidArray:
                                 List<string> guids = new List<string>();
-                                foreach (string guid in attribute.StringValueArray)
+                                foreach (byte[] guid in attribute.ByteValueArray)
                                 {
                                     string g = new Guid(guid).ToString();
                                     guids.Add(g);
