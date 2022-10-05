@@ -34,14 +34,21 @@ namespace Zephyr.Directory
             }
             else
             {
-                LdapUtils.ApplyDefaulsAndValidate(request);
-                string searchFilter = LdapUtils.GetSearchString(request);
+                try
+                {
+                    LdapUtils.ApplyDefaulsAndValidate(request);
+                    string searchFilter = LdapUtils.GetSearchString(request);
 
-                LdapServer ldap = new LdapServer(request.Config);
-                ldap.Bind(request.Config);
+                    LdapServer ldap = new LdapServer(request.Config);
+                    ldap.Bind(request.Config);
 
-                response = ldap.Search(request.SearchBase, searchFilter, request.Attributes);
-                ldap.Disconnect();
+                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes);
+                    ldap.Disconnect();
+                }
+                catch (Exception e)
+                {
+                    response = LdapServer.ReturnError(e, request.Config);
+                }
             }
 
             Console.WriteLine(JsonTools.Serialize(response, true));

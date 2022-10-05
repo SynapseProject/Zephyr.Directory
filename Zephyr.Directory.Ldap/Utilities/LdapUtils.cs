@@ -206,6 +206,17 @@ namespace Zephyr.Directory.Ldap
             if (target.MaxResults == null)
                 target.MaxResults = source.MaxResults;
 
+            if (target.MaxRetries == null)
+                target.MaxRetries = source.MaxRetries;
+
+            if (target.AttributeTypes == null)
+                target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
+
+            if (source.AttributeTypes != null)
+                foreach (string key in source.AttributeTypes.Keys)
+                    if (!target.AttributeTypes.ContainsKey(key))
+                        target.AttributeTypes.Add(key, source.AttributeTypes[key]);
+
             return target;
         }
 
@@ -219,7 +230,7 @@ namespace Zephyr.Directory.Ldap
             {
                 Dictionary<string, LdapAttributeTypes> returnTypes = JsonTools.Deserialize<Dictionary<string, LdapAttributeTypes>>(attrConfigStr);
                 if (request.Config.AttributeTypes == null)
-                    request.Config.AttributeTypes = new Dictionary<string, LdapAttributeTypes>();
+                    request.Config.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
 
                 foreach (string key in returnTypes.Keys)
                     if (!request.Config.AttributeTypes.ContainsKey(key))

@@ -13,7 +13,7 @@ using Novell.Directory.Ldap.Utilclass;
 
 namespace Zephyr.Directory.Ldap
 {
-    public class LdapServer
+    public partial class LdapServer
     {
         LdapConnection conn;
 
@@ -21,41 +21,17 @@ namespace Zephyr.Directory.Ldap
         public int Port { get; set; }
         public bool UseSSL { get; set; }
         public int MaxResults { get; set; } = 1000;
+        public int MaxRetries { get; set; } = 0;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
-
-        // Known Active Directory Attributes That Do Not Default To "String" For Their Values.
-        // These can be overridden in the config section.
-        private static readonly Dictionary<string, LdapAttributeTypes> DefaultTypes = new Dictionary<string, LdapAttributeTypes>()
-        {
-            { "objectClass", LdapAttributeTypes.StringArray },
-            { "managedObjects", LdapAttributeTypes.StringArray },
-            { "dSCorePropagationData", LdapAttributeTypes.StringArray },
-            { "objectGUID", LdapAttributeTypes.Guid },
-            { "objectSid", LdapAttributeTypes.Sid },
-            { "member", LdapAttributeTypes.StringArray },
-            { "memberOf", LdapAttributeTypes.StringArray },
-            { "proxyAddresses", LdapAttributeTypes.StringArray },
-            { "businessCategory", LdapAttributeTypes.StringArray },
-            { "otherHomePhone", LdapAttributeTypes.StringArray },
-            { "otherPager", LdapAttributeTypes.StringArray },
-            { "otherFacsimileTelephoneNumber", LdapAttributeTypes.StringArray },
-            { "otherMobile", LdapAttributeTypes.StringArray },
-            { "otherIpPhone", LdapAttributeTypes.StringArray },
-            { "secretary", LdapAttributeTypes.StringArray },
-            { "servicePrincipalName", LdapAttributeTypes.StringArray },
-            { "subRefs", LdapAttributeTypes.StringArray },
-            { "wellKnownObjects", LdapAttributeTypes.StringArray },
-            { "otherWellKnownObjects", LdapAttributeTypes.StringArray },
-        };
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxResults, attributeReturnTypes);
+            init(server, port, useSSL, maxResults, maxRetries, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -66,30 +42,51 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxResults, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
             if (maxResults != null)
                 this.MaxResults = maxResults.Value;
+            if (maxRetries != null)
+                this.MaxRetries = maxRetries.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
-
-            foreach (string key in DefaultTypes.Keys)
-                if (!(this.ReturnTypes.ContainsKey(key)))
-                    this.ReturnTypes.Add(key, DefaultTypes[key]);
 
             this.conn = new LdapConnection();
 
             conn.SecureSocketLayer = this.UseSSL;
             LdapSearchConstraints consts = conn.SearchConstraints;
+#pragma warning disable CS0618 // Type or member is obsolete
             if (this.UseSSL)
                 conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
+#pragma warning restore CS0618 // Type or member is obsolete
 
-            this.Connect();
-            consts = conn.SearchConstraints;
+            int attempts = 0;
+
+            Exception connError = null;
+            while (attempts <= this.MaxRetries && !conn.Connected)
+            {
+                try
+                {
+                    this.Connect();
+                    consts = conn.SearchConstraints;
+                }
+                catch (Exception e)
+                {
+                    attempts++;
+                    connError = e;
+                    Console.WriteLine($"ERROR - Ldap Connection Failed.  {e.Message} - {e.ToString()}");
+                }
+            }
+
+            if (!conn.Connected && connError != null)
+            {
+                Console.WriteLine("ERROR - Max Connection Attemps Reached.");
+                throw connError;
+            }
         }
 
         public void Connect()
@@ -192,9 +189,12 @@ namespace Zephyr.Directory.Ldap
                     {
                         LdapAttribute attribute = attributes[key];
 
-                        LdapAttributeTypes attrType = LdapAttributeTypes.String;
+                        // TODO : Check Types In Environment Variables
+                        LdapAttributeTypes attrType = LdapAttributeTypes.Unknown;
                         if (this.ReturnTypes.ContainsKey(key))
                             attrType = this.ReturnTypes[key];
+                        else if (DefaultTypes.ContainsKey(key))
+                            attrType = DefaultTypes[key];
 
                         switch (attrType)
                         {
@@ -215,14 +215,59 @@ namespace Zephyr.Directory.Ldap
                             case LdapAttributeTypes.Guid:
                                 rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
                                 break;
+                            case LdapAttributeTypes.GuidArray:
+                                List<string> guids = new List<string>();
+                                foreach (byte[] guid in attribute.ByteValueArray)
+                                {
+                                    string g = new Guid(guid).ToString();
+                                    guids.Add(g);
+                                }
+                                rec.Attributes.Add(key, guids);
+                                break;
                             case LdapAttributeTypes.Sid:
                                 rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
+                                break;
+                            case LdapAttributeTypes.SidArray:
+                                List<string> sids = new List<string>();
+                                foreach (byte[] sid in attribute.ByteValueArray)
+                                {
+                                    string s = SidUtils.ConvertByteToStringSid(sid);
+                                    sids.Add(s);
+                                }
+                                rec.Attributes.Add(key, sids);
+                                break;
+                            case LdapAttributeTypes.String:
+                                rec.Attributes.Add(key, attribute.StringValue);
                                 break;
                             case LdapAttributeTypes.StringArray:
                                 rec.Attributes.Add(key, attribute.StringValueArray);
                                 break;
+                            case LdapAttributeTypes.Number:
+                                rec.Attributes.Add(key, long.Parse(attribute.StringValue));
+                                break;
+                            case LdapAttributeTypes.NumberArray:
+                                List<long> numbers = new List<long>();
+                                foreach (string num in attribute.StringValueArray)
+                                {
+                                    long l = long.Parse(num);
+                                    numbers.Add(l);
+                                }
+                                rec.Attributes.Add(key, numbers);
+                                break;
+                            case LdapAttributeTypes.Boolean:
+                                rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
+                                break;
+                            case LdapAttributeTypes.BooleanArray:
+                                List<bool> bools = new List<bool>();
+                                foreach (string bv in attribute.StringValueArray)
+                                {
+                                    bool b = bool.Parse(bv);
+                                    bools.Add(b);
+                                }
+                                rec.Attributes.Add(key, bools);
+                                break;
                             default:
-                                rec.Attributes.Add(key, attribute.StringValue);
+                                AddValueWithUnknownType(rec, key, attribute);
                                 break;
 
                         }
@@ -239,6 +284,31 @@ namespace Zephyr.Directory.Ldap
                     continue;
                 }
             }
+
+            return response;
+        }
+
+        private void AddValueWithUnknownType(LdapObject rec, string key, LdapAttribute attribute)
+        {
+            // TODO: Check for multi-values, GUID, SID, etc...
+            string value = attribute.StringValue;
+            object obj = null;
+
+            try { obj = int.Parse(value); } catch { }
+            if (obj == null)
+                try { obj = bool.Parse(value); } catch { }
+            if (obj == null)
+                obj = value;
+
+            rec.Attributes.Add(key, obj);
+        }
+
+        static public LdapResponse ReturnError(Exception e, LdapConfig config)
+        {
+            LdapResponse response = new LdapResponse();
+            response.Success = false;
+            response.Server = config.Server;
+            response.Message = $"{e.Message} - {e.ToString()}";
 
             return response;
         }
