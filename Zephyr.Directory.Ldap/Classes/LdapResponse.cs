@@ -28,5 +28,8 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
 
+        [JsonProperty(PropertyName = "resultsIncomplete", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? ResultsIncomplete { get; set; }
+
     }
 }

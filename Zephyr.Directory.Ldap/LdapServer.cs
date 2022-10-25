@@ -279,9 +279,23 @@ namespace Zephyr.Directory.Ldap
 
                     response.Records.Add(rec);
                 }
-                catch (LdapReferralException)
+                catch (LdapReferralException lre)
                 {
-                    continue;
+                    if (lre.ResultCode == 10)   // Referral
+                        continue;
+                    else
+                        throw lre;
+                }
+                catch (LdapException le)
+                {
+                    if (le.ResultCode == 4)     // Size Limit Exceeded
+                    {
+                        response.Message = "MaxResults Reached.  Results Are Incomplete.";
+                        response.ResultsIncomplete = true;
+                        break;
+                    }
+                    else
+                        throw le;
                 }
             }
 
