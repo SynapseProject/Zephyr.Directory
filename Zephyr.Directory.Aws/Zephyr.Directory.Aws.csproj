@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Deterministic>False</Deterministic>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <Configurations>Release;Debug</Configurations>
@@ -18,7 +18,7 @@
         <Command>
           <type>AfterClean</type>
           <command>rm -r *</command>
-          <workingdir>${ProjectDir}/bin/Release/netcoreapp3.1/</workingdir>
+          <workingdir>${ProjectDir}/bin/Release/net6.0/</workingdir>
           <externalConsole>True</externalConsole>
         </Command>
         <Command>
@@ -36,7 +36,7 @@
         <Command>
           <type>BeforeBuild</type>
           <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
-          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
         </Command>
       </CustomCommands>
     </CustomCommands>
