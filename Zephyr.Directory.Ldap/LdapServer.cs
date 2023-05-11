@@ -146,6 +146,7 @@ namespace Zephyr.Directory.Ldap
                 options.TimeLimit = 0;
                 options.MaxResults = this.MaxResults;
                 options.ServerTimeLimit = 3600;
+                //options.ReferralFollowing = true;
 
                 if (attributes?.Length == 0)
                     results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
