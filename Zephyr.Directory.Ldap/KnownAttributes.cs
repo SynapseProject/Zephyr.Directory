@@ -7,9 +7,9 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
-using Novell.Directory.Ldap;
-using Novell.Directory.Ldap.SearchExtensions;
-using Novell.Directory.Ldap.Utilclass;
+//using Novell.Directory.Ldap;
+//using Novell.Directory.Ldap.SearchExtensions;
+//using Novell.Directory.Ldap.Utilclass;
 
 namespace Zephyr.Directory.Ldap
 {

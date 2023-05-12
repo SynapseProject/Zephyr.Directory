@@ -7,9 +7,12 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
-using Novell.Directory.Ldap;
-using Novell.Directory.Ldap.SearchExtensions;
-using Novell.Directory.Ldap.Utilclass;
+using LdapForNet;
+using LdapForNet.Native;
+
+//using Novell.Directory.Ldap;
+//using Novell.Directory.Ldap.SearchExtensions;
+//using Novell.Directory.Ldap.Utilclass;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -55,24 +58,26 @@ namespace Zephyr.Directory.Ldap
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
 
-            this.conn = new LdapConnection();
+//            this.conn = new LdapConnection();
 
-            conn.SecureSocketLayer = this.UseSSL;
-            LdapSearchConstraints consts = conn.SearchConstraints;
-#pragma warning disable CS0618 // Type or member is obsolete
-            if (this.UseSSL)
-                conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
-#pragma warning restore CS0618 // Type or member is obsolete
+//            conn.SecureSocketLayer = this.UseSSL;
+//            LdapSearchConstraints consts = conn.SearchConstraints;
+//#pragma warning disable CS0618 // Type or member is obsolete
+//            if (this.UseSSL)
+//                conn.UserDefinedServerCertValidationDelegate += (sender, certificate, chain, errors) => true;
+//#pragma warning restore CS0618 // Type or member is obsolete
 
             int attempts = 0;
+            bool connected = false;
 
             Exception connError = null;
-            while (attempts <= this.MaxRetries && !conn.Connected)
+            while (attempts <= this.MaxRetries && !connected)
             {
                 try
                 {
                     this.Connect();
-                    consts = conn.SearchConstraints;
+//                    consts = conn.SearchConstraints;
+                    connected = true;
                 }
                 catch (Exception e)
                 {
@@ -82,7 +87,7 @@ namespace Zephyr.Directory.Ldap
                 }
             }
 
-            if (!conn.Connected && connError != null)
+            if (!connected && connError != null)
             {
                 Console.WriteLine("ERROR - Max Connection Attemps Reached.");
                 throw connError;
@@ -91,14 +96,13 @@ namespace Zephyr.Directory.Ldap
 
         public void Connect()
         {
-            if (!conn.Connected)
-                conn.Connect(this.Server, this.Port);
+            conn = new LdapConnection();
+            conn.Connect(this.Server, this.Port);
         }
 
         public void Disconnect()
         {
-            if (conn.Connected)
-                conn.Disconnect();
+            conn = null;
         }
 
         public void Bind(LdapConfig config)
@@ -108,7 +112,12 @@ namespace Zephyr.Directory.Ldap
 
         public void Bind(string username, string password)
         {
-            conn.Bind(LdapConnection.LdapV3, username, password);
+            LdapCredential creds = new LdapCredential
+            {
+                UserName = username,
+                Password = password,
+            };
+            conn.Bind(Native.LdapAuthType.Simple, creds);
         }
 
         public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes)
@@ -125,33 +134,38 @@ namespace Zephyr.Directory.Ldap
                 if (String.IsNullOrWhiteSpace(searchFilter))
                     throw new Exception("Search Filter Not Provided");
 
-                if (!conn.Connected)
-                {
-                    response.Message = $"Server {this} Is Not Connected.";
-                    response.Success = false;
-                }
+                //if (!conn.Connected)
+                //{
+                //    response.Message = $"Server {this} Is Not Connected.";
+                //    response.Success = false;
+                //}
 
-                if (!conn.Bound)
-                {
-                    response.Message = $"Server {this} Is Not Bound.";
-                    response.Success = false;
-                }
+                //if (!conn.Bound)
+                //{
+                //    response.Message = $"Server {this} Is Not Bound.";
+                //    response.Success = false;
+                //}
 
                 if (searchBase == null)
-                    searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+                {
+                    LdapEntry rootDSE = conn.GetRootDse();
+                    searchBase = rootDSE.Dn;
+                    //searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+                }
 
-                LdapSearchResults results = null;
-                // TODO : Set Search Constrains
-                LdapSearchConstraints options = new LdapSearchConstraints();
-                options.TimeLimit = 0;
-                options.MaxResults = this.MaxResults;
-                options.ServerTimeLimit = 3600;
+                //LdapSearchResults results = null;
+                //LdapSearchConstraints options = new LdapSearchConstraints();
+                //options.TimeLimit = 0;
+                //options.MaxResults = this.MaxResults;
+                //options.ServerTimeLimit = 3600;
                 //options.ReferralFollowing = true;
 
-                if (attributes?.Length == 0)
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
-                else
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
+                IList<LdapEntry> results =  conn.Search(searchBase, searchFilter, attributes);
+
+                //if (attributes?.Length == 0)
+                //    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
+                //else
+                //    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
 
                 response = ParseResults(results);
 
@@ -169,26 +183,28 @@ namespace Zephyr.Directory.Ldap
             return response;
         }
 
-        private LdapResponse ParseResults(LdapSearchResults results)
+        private LdapResponse ParseResults(IList<LdapEntry> results)
         {
             LdapResponse response = new LdapResponse();
             response.Records = new List<LdapObject>();
 
-            while (results.HasMore())
+            foreach (LdapEntry record in results)
             {
                 try
                 {
-                    LdapEntry record = results.Next();
-
                     LdapObject rec = new LdapObject();
                     rec.DistinguishedName = record.Dn;
 
-                    LdapAttributeSet attributes = record.GetAttributeSet();
+                    SearchResultAttributeCollection attributes =  record.DirectoryAttributes;
+
+                    //LdapAttributeSet attributes = record.GetAttributeSet();
                     rec.Attributes = new Dictionary<string, object>();
 
-                    foreach (string key in attributes.Keys)
+                    foreach (string key in attributes.AttributeNames)
                     {
-                        LdapAttribute attribute = attributes[key];
+                        DirectoryAttribute attribute = attributes[key];
+                        Type rType = attribute.GetType();
+                        
 
                         // TODO : Check Types In Environment Variables
                         LdapAttributeTypes attrType = LdapAttributeTypes.Unknown;
@@ -199,114 +215,118 @@ namespace Zephyr.Directory.Ldap
 
                         switch (attrType)
                         {
-                            case LdapAttributeTypes.Bytes:
-                                string str = BitConverter.ToString(attribute.ByteValue);
-                                str = str.Replace("-", "");
-                                rec.Attributes.Add(key, "0x" + str);
-                                break;
-                            case LdapAttributeTypes.BytesArray:
-                                List<string> strs = new List<string>();
-                                foreach (byte[] b in attribute.ByteValueArray)
-                                {
-                                    string s = BitConverter.ToString(b);
-                                    strs.Add("0x" + s.Replace("-", ""));
-                                }
-                                rec.Attributes.Add(key, strs);
-                                break;
-                            case LdapAttributeTypes.Guid:
-                                rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
-                                break;
-                            case LdapAttributeTypes.GuidArray:
-                                List<string> guids = new List<string>();
-                                foreach (byte[] guid in attribute.ByteValueArray)
-                                {
-                                    string g = new Guid(guid).ToString();
-                                    guids.Add(g);
-                                }
-                                rec.Attributes.Add(key, guids);
-                                break;
-                            case LdapAttributeTypes.Sid:
-                                rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
-                                break;
-                            case LdapAttributeTypes.SidArray:
-                                List<string> sids = new List<string>();
-                                foreach (byte[] sid in attribute.ByteValueArray)
-                                {
-                                    string s = SidUtils.ConvertByteToStringSid(sid);
-                                    sids.Add(s);
-                                }
-                                rec.Attributes.Add(key, sids);
-                                break;
-                            case LdapAttributeTypes.String:
-                                rec.Attributes.Add(key, attribute.StringValue);
-                                break;
-                            case LdapAttributeTypes.StringArray:
-                                rec.Attributes.Add(key, attribute.StringValueArray);
-                                break;
-                            case LdapAttributeTypes.Number:
-                                rec.Attributes.Add(key, long.Parse(attribute.StringValue));
-                                break;
-                            case LdapAttributeTypes.NumberArray:
-                                List<long> numbers = new List<long>();
-                                foreach (string num in attribute.StringValueArray)
-                                {
-                                    long l = long.Parse(num);
-                                    numbers.Add(l);
-                                }
-                                rec.Attributes.Add(key, numbers);
-                                break;
-                            case LdapAttributeTypes.Boolean:
-                                rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
-                                break;
-                            case LdapAttributeTypes.BooleanArray:
-                                List<bool> bools = new List<bool>();
-                                foreach (string bv in attribute.StringValueArray)
-                                {
-                                    bool b = bool.Parse(bv);
-                                    bools.Add(b);
-                                }
-                                rec.Attributes.Add(key, bools);
-                                break;
+                            //case LdapAttributeTypes.Bytes:
+                            //    string str = BitConverter.ToString(attribute.ByteValue);
+                            //    str = str.Replace("-", "");
+                            //    rec.Attributes.Add(key, "0x" + str);
+                            //    break;
+                            //case LdapAttributeTypes.BytesArray:
+                            //    List<string> strs = new List<string>();
+                            //    foreach (byte[] b in attribute.ByteValueArray)
+                            //    {
+                            //        string s = BitConverter.ToString(b);
+                            //        strs.Add("0x" + s.Replace("-", ""));
+                            //    }
+                            //    rec.Attributes.Add(key, strs);
+                            //    break;
+                            //case LdapAttributeTypes.Guid:
+                            //    rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
+                            //    break;
+                            //case LdapAttributeTypes.GuidArray:
+                            //    List<string> guids = new List<string>();
+                            //    foreach (byte[] guid in attribute.ByteValueArray)
+                            //    {
+                            //        string g = new Guid(guid).ToString();
+                            //        guids.Add(g);
+                            //    }
+                            //    rec.Attributes.Add(key, guids);
+                            //    break;
+                            //case LdapAttributeTypes.Sid:
+                            //    rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
+                            //    break;
+                            //case LdapAttributeTypes.SidArray:
+                            //    List<string> sids = new List<string>();
+                            //    foreach (byte[] sid in attribute.ByteValueArray)
+                            //    {
+                            //        string s = SidUtils.ConvertByteToStringSid(sid);
+                            //        sids.Add(s);
+                            //    }
+                            //    rec.Attributes.Add(key, sids);
+                            //    break;
+                            //case LdapAttributeTypes.String:
+                            //    rec.Attributes.Add(key, attribute.StringValue);
+                            //    break;
+                            //case LdapAttributeTypes.StringArray:
+                            //    rec.Attributes.Add(key, attribute.StringValueArray);
+                            //    break;
+                            //case LdapAttributeTypes.Number:
+                            //    rec.Attributes.Add(key, long.Parse(attribute.StringValue));
+                            //    break;
+                            //case LdapAttributeTypes.NumberArray:
+                            //    List<long> numbers = new List<long>();
+                            //    foreach (string num in attribute.StringValueArray)
+                            //    {
+                            //        long l = long.Parse(num);
+                            //        numbers.Add(l);
+                            //    }
+                            //    rec.Attributes.Add(key, numbers);
+                            //    break;
+                            //case LdapAttributeTypes.Boolean:
+                            //    rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
+                            //    break;
+                            //case LdapAttributeTypes.BooleanArray:
+                            //    List<bool> bools = new List<bool>();
+                            //    foreach (string bv in attribute.StringValueArray)
+                            //    {
+                            //        bool b = bool.Parse(bv);
+                            //        bools.Add(b);
+                            //    }
+                            //    rec.Attributes.Add(key, bools);
+                            //    break;
                             default:
                                 AddValueWithUnknownType(rec, key, attribute);
                                 break;
 
                         }
 
-                        if (attribute.ByteValueArray.Length > 1 && attrType != LdapAttributeTypes.BytesArray && attrType != LdapAttributeTypes.StringArray)
-                            Console.WriteLine($"WARNING : Multi-Value Attribute [{attribute.Name}] Was Returned As A Single Value");
+                        //if (attribute.ByteValueArray.Length > 1 && attrType != LdapAttributeTypes.BytesArray && attrType != LdapAttributeTypes.StringArray)
+                        //    Console.WriteLine($"WARNING : Multi-Value Attribute [{attribute.Name}] Was Returned As A Single Value");
                     }
 
 
                     response.Records.Add(rec);
                 }
-                catch (LdapReferralException lre)
+                //catch (LdapReferralException lre)
+                //{
+                //    if (lre.ResultCode == 10)   // Referral
+                //        continue;
+                //    else
+                //        throw lre;
+                //}
+                //catch (LdapException le)
+                //{
+                //    if (le.ResultCode == 4)     // Size Limit Exceeded
+                //    {
+                //        response.Message = "MaxResults Reached.  Results Are Incomplete.";
+                //        response.ResultsIncomplete = true;
+                //        break;
+                //    }
+                //    else
+                //        throw le;
+                //}
+                catch (Exception e)
                 {
-                    if (lre.ResultCode == 10)   // Referral
-                        continue;
-                    else
-                        throw lre;
-                }
-                catch (LdapException le)
-                {
-                    if (le.ResultCode == 4)     // Size Limit Exceeded
-                    {
-                        response.Message = "MaxResults Reached.  Results Are Incomplete.";
-                        response.ResultsIncomplete = true;
-                        break;
-                    }
-                    else
-                        throw le;
+                    throw e;
                 }
             }
 
             return response;
         }
 
-        private void AddValueWithUnknownType(LdapObject rec, string key, LdapAttribute attribute)
+        private void AddValueWithUnknownType(LdapObject rec, string key, DirectoryAttribute attribute)
         {
             // TODO: Check for multi-values, GUID, SID, etc...
-            string value = attribute.StringValue;
+            string value = attribute.GetValue<string>();
             object obj = null;
 
             try { obj = int.Parse(value); } catch { }
