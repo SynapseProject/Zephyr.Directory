@@ -160,6 +160,9 @@ namespace Zephyr.Directory.Ldap
                 //options.ServerTimeLimit = 3600;
                 //options.ReferralFollowing = true;
 
+                if (attributes?.Length == 0)
+                    attributes = new string[] { "" };
+
                 IList<LdapEntry> results =  conn.Search(searchBase, searchFilter, attributes);
 
                 //if (attributes?.Length == 0)
@@ -200,97 +203,100 @@ namespace Zephyr.Directory.Ldap
                     //LdapAttributeSet attributes = record.GetAttributeSet();
                     rec.Attributes = new Dictionary<string, object>();
 
-                    foreach (string key in attributes.AttributeNames)
+                    if (attributes.Count > 0)
                     {
-                        DirectoryAttribute attribute = attributes[key];
-                        Type rType = attribute.GetType();
-                        
-
-                        // TODO : Check Types In Environment Variables
-                        LdapAttributeTypes attrType = LdapAttributeTypes.Unknown;
-                        if (this.ReturnTypes.ContainsKey(key))
-                            attrType = this.ReturnTypes[key];
-                        else if (DefaultTypes.ContainsKey(key))
-                            attrType = DefaultTypes[key];
-
-                        switch (attrType)
+                        foreach (string key in attributes.AttributeNames)
                         {
-                            //case LdapAttributeTypes.Bytes:
-                            //    string str = BitConverter.ToString(attribute.ByteValue);
-                            //    str = str.Replace("-", "");
-                            //    rec.Attributes.Add(key, "0x" + str);
-                            //    break;
-                            //case LdapAttributeTypes.BytesArray:
-                            //    List<string> strs = new List<string>();
-                            //    foreach (byte[] b in attribute.ByteValueArray)
-                            //    {
-                            //        string s = BitConverter.ToString(b);
-                            //        strs.Add("0x" + s.Replace("-", ""));
-                            //    }
-                            //    rec.Attributes.Add(key, strs);
-                            //    break;
-                            //case LdapAttributeTypes.Guid:
-                            //    rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
-                            //    break;
-                            //case LdapAttributeTypes.GuidArray:
-                            //    List<string> guids = new List<string>();
-                            //    foreach (byte[] guid in attribute.ByteValueArray)
-                            //    {
-                            //        string g = new Guid(guid).ToString();
-                            //        guids.Add(g);
-                            //    }
-                            //    rec.Attributes.Add(key, guids);
-                            //    break;
-                            //case LdapAttributeTypes.Sid:
-                            //    rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
-                            //    break;
-                            //case LdapAttributeTypes.SidArray:
-                            //    List<string> sids = new List<string>();
-                            //    foreach (byte[] sid in attribute.ByteValueArray)
-                            //    {
-                            //        string s = SidUtils.ConvertByteToStringSid(sid);
-                            //        sids.Add(s);
-                            //    }
-                            //    rec.Attributes.Add(key, sids);
-                            //    break;
-                            //case LdapAttributeTypes.String:
-                            //    rec.Attributes.Add(key, attribute.StringValue);
-                            //    break;
-                            //case LdapAttributeTypes.StringArray:
-                            //    rec.Attributes.Add(key, attribute.StringValueArray);
-                            //    break;
-                            //case LdapAttributeTypes.Number:
-                            //    rec.Attributes.Add(key, long.Parse(attribute.StringValue));
-                            //    break;
-                            //case LdapAttributeTypes.NumberArray:
-                            //    List<long> numbers = new List<long>();
-                            //    foreach (string num in attribute.StringValueArray)
-                            //    {
-                            //        long l = long.Parse(num);
-                            //        numbers.Add(l);
-                            //    }
-                            //    rec.Attributes.Add(key, numbers);
-                            //    break;
-                            //case LdapAttributeTypes.Boolean:
-                            //    rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
-                            //    break;
-                            //case LdapAttributeTypes.BooleanArray:
-                            //    List<bool> bools = new List<bool>();
-                            //    foreach (string bv in attribute.StringValueArray)
-                            //    {
-                            //        bool b = bool.Parse(bv);
-                            //        bools.Add(b);
-                            //    }
-                            //    rec.Attributes.Add(key, bools);
-                            //    break;
-                            default:
-                                AddValueWithUnknownType(rec, key, attribute);
-                                break;
+                            DirectoryAttribute attribute = attributes[key];
+                            Type rType = attribute.GetType();
 
+
+                            // TODO : Check Types In Environment Variables
+                            LdapAttributeTypes attrType = LdapAttributeTypes.Unknown;
+                            if (this.ReturnTypes.ContainsKey(key))
+                                attrType = this.ReturnTypes[key];
+                            else if (DefaultTypes.ContainsKey(key))
+                                attrType = DefaultTypes[key];
+
+                            switch (attrType)
+                            {
+                                //case LdapAttributeTypes.Bytes:
+                                //    string str = BitConverter.ToString(attribute.ByteValue);
+                                //    str = str.Replace("-", "");
+                                //    rec.Attributes.Add(key, "0x" + str);
+                                //    break;
+                                //case LdapAttributeTypes.BytesArray:
+                                //    List<string> strs = new List<string>();
+                                //    foreach (byte[] b in attribute.ByteValueArray)
+                                //    {
+                                //        string s = BitConverter.ToString(b);
+                                //        strs.Add("0x" + s.Replace("-", ""));
+                                //    }
+                                //    rec.Attributes.Add(key, strs);
+                                //    break;
+                                //case LdapAttributeTypes.Guid:
+                                //    rec.Attributes.Add(key, new Guid(attribute.ByteValue).ToString());
+                                //    break;
+                                //case LdapAttributeTypes.GuidArray:
+                                //    List<string> guids = new List<string>();
+                                //    foreach (byte[] guid in attribute.ByteValueArray)
+                                //    {
+                                //        string g = new Guid(guid).ToString();
+                                //        guids.Add(g);
+                                //    }
+                                //    rec.Attributes.Add(key, guids);
+                                //    break;
+                                //case LdapAttributeTypes.Sid:
+                                //    rec.Attributes.Add(key, SidUtils.ConvertByteToStringSid(attribute.ByteValue));
+                                //    break;
+                                //case LdapAttributeTypes.SidArray:
+                                //    List<string> sids = new List<string>();
+                                //    foreach (byte[] sid in attribute.ByteValueArray)
+                                //    {
+                                //        string s = SidUtils.ConvertByteToStringSid(sid);
+                                //        sids.Add(s);
+                                //    }
+                                //    rec.Attributes.Add(key, sids);
+                                //    break;
+                                //case LdapAttributeTypes.String:
+                                //    rec.Attributes.Add(key, attribute.StringValue);
+                                //    break;
+                                //case LdapAttributeTypes.StringArray:
+                                //    rec.Attributes.Add(key, attribute.StringValueArray);
+                                //    break;
+                                //case LdapAttributeTypes.Number:
+                                //    rec.Attributes.Add(key, long.Parse(attribute.StringValue));
+                                //    break;
+                                //case LdapAttributeTypes.NumberArray:
+                                //    List<long> numbers = new List<long>();
+                                //    foreach (string num in attribute.StringValueArray)
+                                //    {
+                                //        long l = long.Parse(num);
+                                //        numbers.Add(l);
+                                //    }
+                                //    rec.Attributes.Add(key, numbers);
+                                //    break;
+                                //case LdapAttributeTypes.Boolean:
+                                //    rec.Attributes.Add(key, bool.Parse(attribute.StringValue));
+                                //    break;
+                                //case LdapAttributeTypes.BooleanArray:
+                                //    List<bool> bools = new List<bool>();
+                                //    foreach (string bv in attribute.StringValueArray)
+                                //    {
+                                //        bool b = bool.Parse(bv);
+                                //        bools.Add(b);
+                                //    }
+                                //    rec.Attributes.Add(key, bools);
+                                //    break;
+                                default:
+                                    AddValueWithUnknownType(rec, key, attribute);
+                                    break;
+
+                            }
+
+                            //if (attribute.ByteValueArray.Length > 1 && attrType != LdapAttributeTypes.BytesArray && attrType != LdapAttributeTypes.StringArray)
+                            //    Console.WriteLine($"WARNING : Multi-Value Attribute [{attribute.Name}] Was Returned As A Single Value");
                         }
-
-                        //if (attribute.ByteValueArray.Length > 1 && attrType != LdapAttributeTypes.BytesArray && attrType != LdapAttributeTypes.StringArray)
-                        //    Console.WriteLine($"WARNING : Multi-Value Attribute [{attribute.Name}] Was Returned As A Single Value");
                     }
 
 
