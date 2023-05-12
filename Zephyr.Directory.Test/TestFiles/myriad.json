@@ -1,7 +1,9 @@
 {
 	"objectType": "User",
-	"searchValue": "CN=Trump\\, Donald (Crook),OU=Random,DC=sandbox,DC=local",
-	"config": {
-		"maxRetries": 1
+	"searchValue": "*",
+	"attributes": [
+	],
+	"config" :{
+			"maxResults": 10
 	}
 }

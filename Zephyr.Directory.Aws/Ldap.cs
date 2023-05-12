@@ -28,7 +28,11 @@ namespace Zephyr.Directory.Aws
             }
             else if (isPing)
             {
-                response.Message = "Hello From MyriAD.";
+                System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+                string version = fvi.FileVersion;
+
+                response.Message = "Hello From MyriAD (" + version + ").";
                 if (request.Ping == PingType.Echo)
                     Console.WriteLine("Ping");
             }

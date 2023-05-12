@@ -146,6 +146,7 @@ namespace Zephyr.Directory.Ldap
                 options.TimeLimit = 0;
                 options.MaxResults = this.MaxResults;
                 options.ServerTimeLimit = 3600;
+                //options.ReferralFollowing = true;
 
                 if (attributes?.Length == 0)
                     results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
@@ -279,9 +280,23 @@ namespace Zephyr.Directory.Ldap
 
                     response.Records.Add(rec);
                 }
-                catch (LdapReferralException)
+                catch (LdapReferralException lre)
                 {
-                    continue;
+                    if (lre.ResultCode == 10)   // Referral
+                        continue;
+                    else
+                        throw lre;
+                }
+                catch (LdapException le)
+                {
+                    if (le.ResultCode == 4)     // Size Limit Exceeded
+                    {
+                        response.Message = "MaxResults Reached.  Results Are Incomplete.";
+                        response.ResultsIncomplete = true;
+                        break;
+                    }
+                    else
+                        throw le;
                 }
             }
 

@@ -4,11 +4,11 @@ using System.Runtime.CompilerServices;
 // Information about this assembly is defined by the following attributes. 
 // Change them to the values specific to your project.
 
-[assembly: AssemblyTitle("Zephyr.Directory.Aws")]
-[assembly: AssemblyDescription("AWS Implemention of MyriAD")]
+[assembly: AssemblyTitle("Zephyr.Directory.Test")]
+[assembly: AssemblyDescription("Test Project for MyriAD")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Zephyr.Directory.Aws")]
+[assembly: AssemblyProduct("Zephyr.Directory.Test")]
 [assembly: AssemblyCopyright("Copyright © Guy Waguespack, 2019 - 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

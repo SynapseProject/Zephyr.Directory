@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Deterministic>False</Deterministic>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <Configurations>Release;Debug</Configurations>
@@ -12,20 +12,19 @@
       <CustomCommands>
         <Command>
           <type>AfterBuild</type>
-          <command>dotnet lambda package --framework netcoreapp3.1</command>
+          <command>dotnet lambda package --framework net6.0</command>
           <workingdir>${ProjectDir}</workingdir>
         </Command>
         <Command>
           <type>AfterClean</type>
           <command>rm -r *</command>
-          <workingdir>${ProjectDir}/bin/Release/netcoreapp3.1/</workingdir>
+          <workingdir>${ProjectDir}/bin/Release/net6.0/</workingdir>
           <externalConsole>True</externalConsole>
         </Command>
         <Command>
           <type>BeforeBuild</type>
-          <command>dotnet Zephyr.Version.dll ${ProjectDir}
-</command>
-          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
         </Command>
       </CustomCommands>
     </CustomCommands>
@@ -36,7 +35,7 @@
         <Command>
           <type>BeforeBuild</type>
           <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
-          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
         </Command>
       </CustomCommands>
     </CustomCommands>
@@ -52,8 +51,8 @@
     <None Remove="Amazon.Lambda.Core" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.Lambda" Version="3.7.4.10" />
-    <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.0.0" />
-    <PackageReference Include="Amazon.Lambda.Core" Version="2.0.0" />
+    <PackageReference Include="AWSSDK.Lambda" Version="3.7.109.6" />
+    <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.1.0" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
   </ItemGroup>
 </Project>
