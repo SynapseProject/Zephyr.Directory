@@ -3,15 +3,44 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <CustomCommands>
+      <CustomCommands>
+        <Command>
+          <type>BeforeBuild</type>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
+        </Command>
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize></Optimize>
+    <WarningLevel></WarningLevel>
+    <Optimize>true</Optimize>
+    <WarningLevel>6</WarningLevel>
+    <CustomCommands>
+      <CustomCommands>
+        <Command>
+          <type>BeforeBuild</type>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
+        </Command>
+      </CustomCommands>
+    </CustomCommands>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="TestFiles\" />
+    <None Remove="Properties\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="TestFiles\" />
+    <Folder Include="Properties\" />
   </ItemGroup>
 </Project>

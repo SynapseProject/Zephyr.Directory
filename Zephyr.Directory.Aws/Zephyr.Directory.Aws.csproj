@@ -12,7 +12,7 @@
       <CustomCommands>
         <Command>
           <type>AfterBuild</type>
-          <command>dotnet lambda package --framework netcoreapp3.1</command>
+          <command>dotnet lambda package --framework net6.0</command>
           <workingdir>${ProjectDir}</workingdir>
         </Command>
         <Command>
@@ -23,9 +23,8 @@
         </Command>
         <Command>
           <type>BeforeBuild</type>
-          <command>dotnet Zephyr.Version.dll ${ProjectDir}
-</command>
-          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/netcoreapp3.1</workingdir>
+          <command>dotnet Zephyr.Version.dll ${ProjectDir}</command>
+          <workingdir>${SolutionDir}/Zephyr.Version/bin/${ProjectConfig}/net6.0</workingdir>
         </Command>
       </CustomCommands>
     </CustomCommands>
