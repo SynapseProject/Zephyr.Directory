@@ -134,18 +134,6 @@ namespace Zephyr.Directory.Ldap
                 if (String.IsNullOrWhiteSpace(searchFilter))
                     throw new Exception("Search Filter Not Provided");
 
-                //if (!conn.Connected)
-                //{
-                //    response.Message = $"Server {this} Is Not Connected.";
-                //    response.Success = false;
-                //}
-
-                //if (!conn.Bound)
-                //{
-                //    response.Message = $"Server {this} Is Not Bound.";
-                //    response.Success = false;
-                //}
-
                 if (searchBase == null)
                 {
                     // Get Default Naming Context As Search Base
@@ -169,12 +157,43 @@ namespace Zephyr.Directory.Ldap
                 if (attributes?.Length == 0)
                     attributes = new string[] { "" };
 
-                IList<LdapEntry> results =  conn.Search(searchBase, searchFilter, attributes);
+                //IList<LdapEntry> results =  conn.Search(searchBase, searchFilter, attributes);
 
-                //if (attributes?.Length == 0)
-                //    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
-                //else
-                //    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
+
+
+                List<DirectoryEntry> results = new List<DirectoryEntry>();
+                SearchRequest request = new SearchRequest(searchBase, searchFilter, Native.LdapSearchScope.LDAP_SCOPE_SUB, attributes);
+
+                // Add Pagination Controller To Request
+                PageResultRequestControl pageRequestControl = new PageResultRequestControl();       // Can Put Page Size Here, Leaving As Default
+                request.Controls.Add(pageRequestControl);
+
+                // Get Paged Response
+                SearchResponse pagedResponse = (SearchResponse)conn.SendRequest(request);
+                results.AddRange(pagedResponse.Entries);
+
+                PageResultResponseControl pageResponseControl = null;
+
+                while (true)
+                {
+                    // Get Pagination Controller Reponse
+                    foreach (DirectoryControl control in pagedResponse.Controls)
+                        if (control is PageResultResponseControl)
+                        {
+                            pageResponseControl = (PageResultResponseControl)control;
+                            break;
+                        }
+
+                    // Check For More Records
+                    if (pageResponseControl == null || pageResponseControl.Cookie.Length == 0)
+                        break;
+
+                    // Make Subsequent Request For More Records
+                    pageRequestControl.Cookie = pageResponseControl.Cookie;
+                    pagedResponse = (SearchResponse)conn.SendRequest(request);
+                    results.AddRange(pagedResponse.Entries);
+
+                }
 
                 response = ParseResults(results);
 
@@ -192,17 +211,20 @@ namespace Zephyr.Directory.Ldap
             return response;
         }
 
-        private LdapResponse ParseResults(IList<LdapEntry> results)
+        private LdapResponse ParseResults(List<DirectoryEntry> results)
         {
             LdapResponse response = new LdapResponse();
             response.Records = new List<LdapObject>();
 
-            foreach (LdapEntry record in results)
+            foreach (DirectoryEntry de in results)
             {
                 try
                 {
+                    LdapEntry record = de.ToLdapEntry();
+
                     LdapObject rec = new LdapObject();
                     rec.DistinguishedName = record.Dn;
+                    Console.WriteLine($"DN : {record.Dn}");
 
                     SearchResultAttributeCollection attributes =  record.DirectoryAttributes;
 
@@ -295,6 +317,17 @@ namespace Zephyr.Directory.Ldap
                                 //    rec.Attributes.Add(key, bools);
                                 //    break;
                                 default:
+                                    //string value = attribute.GetValue<string>();
+                                    //object obj = null;
+
+                                    //try { obj = int.Parse(value); } catch { }
+                                    //if (obj == null)
+                                    //    try { obj = bool.Parse(value); } catch { }
+                                    //if (obj == null)
+                                        //obj = value;
+
+                                    //rec.Attributes.Add(key, obj);
+
                                     AddValueWithUnknownType(rec, key, attribute);
                                     break;
 
@@ -341,10 +374,10 @@ namespace Zephyr.Directory.Ldap
             string value = attribute.GetValue<string>();
             object obj = null;
 
-            try { obj = int.Parse(value); } catch { }
-            if (obj == null)
-                try { obj = bool.Parse(value); } catch { }
-            if (obj == null)
+            //try { obj = int.Parse(value); } catch { }
+            //if (obj == null)
+            //    try { obj = bool.Parse(value); } catch { }
+            //if (obj == null)
                 obj = value;
 
             rec.Attributes.Add(key, obj);
