@@ -104,7 +104,7 @@ Resources:
 Outputs:
   Version:
     Description: Cloud Formation Template Version
-    Value: 1.0.23132.0
+    Value: 1.0.23135.0
 
   StackName:
     Description: The name of this stack.

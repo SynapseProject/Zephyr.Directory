@@ -148,9 +148,15 @@ namespace Zephyr.Directory.Ldap
 
                 if (searchBase == null)
                 {
+                    // Get Default Naming Context As Search Base
                     LdapEntry rootDSE = conn.GetRootDse();
                     searchBase = rootDSE.Dn;
-                    //searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+
+                    SearchResultAttributeCollection rootAttributes = rootDSE.DirectoryAttributes;
+                    if (rootAttributes.AttributeNames.Contains("defaultNamingContext"))
+                        searchBase = rootAttributes["defaultNamingContext"].GetValue<string>();
+                    else if (rootAttributes.AttributeNames.Contains("rootDomainNamingContext"))
+                        searchBase = rootAttributes["rootDomainNamingContext"].GetValue<string>();
                 }
 
                 //LdapSearchResults results = null;
