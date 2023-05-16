@@ -236,17 +236,12 @@ namespace Zephyr.Directory.Ldap
                             switch (attrType)
                             {
                                 case LdapAttributeTypes.Bytes:
-                                    string str = BitConverter.ToString(attribute.GetValue<byte[]>());
-                                    str = str.Replace("-", "");
-                                    rec.Attributes.Add(key, "0x" + str);
+                                    rec.Attributes.Add(key, GenericUtils.BytesToHex(attribute.GetValue<byte[]>()));
                                     break;
                                 case LdapAttributeTypes.BytesArray:
                                     List<string> strs = new List<string>();
                                     foreach (byte[] b in attribute.GetValues<byte[]>())
-                                    {
-                                        string s = BitConverter.ToString(b);
-                                        strs.Add("0x" + s.Replace("-", ""));
-                                    }
+                                        strs.Add(GenericUtils.BytesToHex(b));
                                     rec.Attributes.Add(key, strs);
                                     break;
                                 case LdapAttributeTypes.Guid:
