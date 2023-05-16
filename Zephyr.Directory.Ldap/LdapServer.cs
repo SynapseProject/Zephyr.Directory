@@ -124,6 +124,7 @@ namespace Zephyr.Directory.Ldap
         public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null)
         {
             LdapResponse response = new LdapResponse();
+            byte[] nextToken = null;
 
             try
             {
@@ -143,17 +144,12 @@ namespace Zephyr.Directory.Ldap
                         searchBase = rootAttributes["rootDomainNamingContext"].GetValue<string>();
                 }
 
-                //LdapSearchResults results = null;
-                //LdapSearchConstraints options = new LdapSearchConstraints();
-                //options.TimeLimit = 0;
-                //options.MaxResults = this.MaxResults;
-                //options.ServerTimeLimit = 3600;
-                //options.ReferralFollowing = true;
-
+                // No Attributes Will Be Returned (DN Only)
                 if (attributes?.Length == 0)
                     attributes = new string[] { "" };
 
 
+                // Start Search
                 List<DirectoryEntry> results = new List<DirectoryEntry>();
                 SearchRequest request = new SearchRequest(searchBase, searchFilter, Native.LdapSearchScope.LDAP_SCOPE_SUB, attributes);
 
@@ -169,7 +165,7 @@ namespace Zephyr.Directory.Ldap
 
                 while (true)
                 {
-                    // Get Pagination Controller Reponse
+                    // Get Pagination Controller Response
                     foreach (DirectoryControl control in pagedResponse.Controls)
                         if (control is PageResultResponseControl)
                         {
@@ -182,7 +178,8 @@ namespace Zephyr.Directory.Ldap
                         break;
 
                     // Make Subsequent Request For More Records
-                    pageRequestControl.Cookie = pageResponseControl.Cookie;
+                    nextToken = pageResponseControl.Cookie;
+                    pageRequestControl.Cookie = nextToken;
                     pagedResponse = (SearchResponse)conn.SendRequest(request);
                     results.AddRange(pagedResponse.Entries);
 
@@ -207,6 +204,7 @@ namespace Zephyr.Directory.Ldap
         private LdapResponse ParseResults(List<DirectoryEntry> results)
         {
             LdapResponse response = new LdapResponse();
+            response.TotalRecords = results.Count;
             response.Records = new List<LdapObject>();
 
             foreach (DirectoryEntry de in results)

@@ -25,6 +25,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
         public List<LdapObject> Records { get; set; }
 
+        [JsonProperty(PropertyName = "totalRecords", NullValueHandling = NullValueHandling.Ignore)]
+        public int TotalRecords { get; set; } = 0;
+
         [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
 
