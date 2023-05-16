@@ -157,14 +157,19 @@ namespace Zephyr.Directory.Ldap
                 PageResultRequestControl pageRequestControl = new PageResultRequestControl();       // Can Put Page Size Here, Leaving As Default (512)
                 request.Controls.Add(pageRequestControl);
 
-                // Get Paged Response
-                SearchResponse pagedResponse = (SearchResponse)conn.SendRequest(request);
-                results.AddRange(pagedResponse.Entries);
-
+                SearchResponse pagedResponse = null;
                 PageResultResponseControl pageResponseControl = null;
 
+                // Perform Search
                 while (true)
                 {
+                    if (nextToken != null)
+                        pageRequestControl.Cookie = nextToken;
+
+                    pagedResponse = (SearchResponse)conn.SendRequest(request);
+                    results.AddRange(pagedResponse.Entries);
+                    //Console.WriteLine($">> Records Found : {results.Count}");
+
                     // Get Pagination Controller Response
                     foreach (DirectoryControl control in pagedResponse.Controls)
                         if (control is PageResultResponseControl)
@@ -177,12 +182,7 @@ namespace Zephyr.Directory.Ldap
                     if (pageResponseControl == null || pageResponseControl.Cookie.Length == 0)
                         break;
 
-                    // Make Subsequent Request For More Records
                     nextToken = pageResponseControl.Cookie;
-                    pageRequestControl.Cookie = nextToken;
-                    pagedResponse = (SearchResponse)conn.SendRequest(request);
-                    results.AddRange(pagedResponse.Entries);
-
                 }
 
                 response = ParseResults(results);
