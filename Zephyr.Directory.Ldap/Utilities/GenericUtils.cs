@@ -8,12 +8,18 @@ namespace Zephyr.Directory.Ldap
 	{
 		public static string BytesToHex(byte[] b)
 		{
+            if (b == null)
+                return null;
+
             string s = BitConverter.ToString(b);
             return "0x" + s.Replace("-", "");
         }
 
         public static byte[] HexToBytes(string s)
         {
+            if (s == null)
+                return null;
+
             string source = s;
             List<byte> bytes = new List<byte>();
 

@@ -38,25 +38,32 @@ namespace Zephyr.Directory
             }
             else
             {
+                bool hasMoreRecords = true;
                 try
                 {
                     LdapUtils.ApplyDefaulsAndValidate(request);
                     string searchFilter = LdapUtils.GetSearchString(request);
 
-                    LdapServer ldap = new LdapServer(request.Config);
-                    ldap.Bind(request.Config);
+                    do
+                    {
+                        LdapServer ldap = new LdapServer(request.Config);
+                        ldap.Bind(request.Config);
 
-                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes);
-                    ldap.Disconnect();
+                        response = ldap.Search(request.SearchBase, searchFilter, request.Attributes, request.NextToken);
+                        Console.WriteLine(JsonTools.Serialize(response, true));
+                        if (response.NextToken != null)
+                            request.NextToken = response.NextToken;
+                        else
+                            hasMoreRecords = false;
+
+                        ldap.Disconnect();
+                    } while (hasMoreRecords);
                 }
                 catch (Exception e)
                 {
                     response = LdapServer.ReturnError(e, request.Config);
                 }
             }
-
-            Console.WriteLine(JsonTools.Serialize(response, true));
-
         }
     }
 }

@@ -61,5 +61,9 @@ namespace Zephyr.Directory.Ldap
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "ping", NullValueHandling = NullValueHandling.Ignore)]
         public PingType? Ping { get; set; }
+
+        [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
+        public string NextToken { get; set; }
+
     }
 }

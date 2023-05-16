@@ -19,7 +19,7 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
-        public int MaxResults { get; set; } = 1000;
+        public int MaxResults { get; set; } = int.MaxValue;
         public int MaxRetries { get; set; } = 0;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
@@ -116,15 +116,16 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(Native.LdapAuthType.Simple, creds);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes)
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, string nextTokenStr = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray());
+            return Search(searchBase, searchFilter, attributes?.ToArray(), nextTokenStr);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, string nextTokenStr = null)
         {
             LdapResponse response = new LdapResponse();
-            byte[] nextToken = null;
+            byte[] nextToken = GenericUtils.HexToBytes(nextTokenStr);
+            int resultsRemaining = this.MaxResults;
 
             try
             {
@@ -166,9 +167,13 @@ namespace Zephyr.Directory.Ldap
                     if (nextToken != null)
                         pageRequestControl.Cookie = nextToken;
 
+                    if (resultsRemaining < 1000)
+                        pageRequestControl.PageSize = resultsRemaining;
+
                     pagedResponse = (SearchResponse)conn.SendRequest(request);
                     results.AddRange(pagedResponse.Entries);
-                    //Console.WriteLine($">> Records Found : {results.Count}");
+
+                    resultsRemaining = resultsRemaining - pageRequestControl.PageSize;
 
                     // Get Pagination Controller Response
                     foreach (DirectoryControl control in pagedResponse.Controls)
@@ -180,9 +185,15 @@ namespace Zephyr.Directory.Ldap
 
                     // Check For More Records
                     if (pageResponseControl == null || pageResponseControl.Cookie.Length == 0)
+                    {
+                        nextToken = null;
                         break;
+                    }
 
                     nextToken = pageResponseControl.Cookie;
+
+                    if (resultsRemaining <= 0)
+                        break;
                 }
 
                 response = ParseResults(results);
@@ -193,6 +204,9 @@ namespace Zephyr.Directory.Ldap
                 response.Message = e.Message;
                 response.Success = false;
             }
+
+            if (nextToken != null && nextToken.Length > 0)
+                response.NextToken = GenericUtils.BytesToHex(nextToken);
 
             response.Server = this.ToString();
             response.SearchBase = searchBase;
