@@ -124,7 +124,7 @@ namespace Zephyr.Directory.Ldap
         public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, string nextTokenStr = null)
         {
             LdapResponse response = new LdapResponse();
-            byte[] nextToken = GenericUtils.HexToBytes(nextTokenStr);
+            byte[] nextToken = GenericUtils.Base64ToBytes(nextTokenStr);
             int resultsRemaining = this.MaxResults;
 
             try
@@ -206,7 +206,7 @@ namespace Zephyr.Directory.Ldap
             }
 
             if (nextToken != null && nextToken.Length > 0)
-                response.NextToken = GenericUtils.BytesToHex(nextToken);
+                response.NextToken = GenericUtils.BytesToBase64(nextToken);
 
             response.Server = this.ToString();
             response.SearchBase = searchBase;

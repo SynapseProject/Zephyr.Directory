@@ -47,6 +47,15 @@ namespace Zephyr.Directory.Ldap
             return sb.ToString().Trim();
         }
 
+        public static string BytesToBase64(byte[] b)
+        {
+            return b==null ? null : Convert.ToBase64String(b);
+        }
+
+        public static byte[] Base64ToBytes(string s)
+        {
+            return s == null ? null : Convert.FromBase64String(s);
+        }
     }
 
 }
