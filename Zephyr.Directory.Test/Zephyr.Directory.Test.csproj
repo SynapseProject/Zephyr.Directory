@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Zephyr.Directory.Ldap\Zephyr.Directory.Ldap.csproj" />
+    <ProjectReference Include="..\Zephyr.Version\Zephyr.Version.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="TestFiles\" />
