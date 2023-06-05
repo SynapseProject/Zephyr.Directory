@@ -21,9 +21,9 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
-        public int MaxResults { get; set; } = 1000;
+        public int MaxResults { get; set; } = int.MaxValue;
         public int MaxRetries { get; set; } = 0;
-        public int MaxPageSize { get; set; } = 512;
+        public int MaxPageSize { get; set; } = 512;     // TODO : Get This From Config / Environment Variables
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
@@ -123,7 +123,6 @@ namespace Zephyr.Directory.Ldap
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
             byte[] nextToken = Utils.Base64ToBytes(nextTokenStr);
-            int resultsRemaining = this.MaxResults;
 
             try
             {
@@ -156,7 +155,11 @@ namespace Zephyr.Directory.Ldap
 
                 while (true)
                 {
-                    SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(this.MaxPageSize, nextToken);
+                    int maxPageSize = this.MaxPageSize;
+                    if (this.MaxResults - entries.Count < this.MaxPageSize)
+                        maxPageSize = this.MaxResults - entries.Count;
+
+                    SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
                     options.SetControls(pagedRequestControl);
 
                     // No Attributes Will Be Returned
@@ -187,9 +190,17 @@ namespace Zephyr.Directory.Ldap
                     nextToken = pagedResponseControl.Cookie;
                     Console.WriteLine($">> Total Records Found : {entries.Count}");
 
+                    // Max Results Retrieved.
+                    if (this.MaxResults <= entries.Count)
+                        break;
+
                 }
 
                 response = ParseResults(entries);
+
+                // If there are still more records, pass back the Next Token in the response.
+                if (nextToken != null && nextToken.Length > 0)
+                    response.NextToken = Utils.BytesToBase64(nextToken);
 
             }
             catch (Exception e)
@@ -332,6 +343,8 @@ namespace Zephyr.Directory.Ldap
                         throw le;
                 }
             }
+
+            response.TotalRecords = entries.Count;
 
             return response;
         }
