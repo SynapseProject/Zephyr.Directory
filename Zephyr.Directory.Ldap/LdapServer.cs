@@ -28,12 +28,12 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxResults, maxRetries, attributeReturnTypes);
+            init(server, port, useSSL, maxResults, maxRetries, maxPageSize, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -44,7 +44,7 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
@@ -53,6 +53,8 @@ namespace Zephyr.Directory.Ldap
                 this.MaxResults = maxResults.Value;
             if (maxRetries != null)
                 this.MaxRetries = maxRetries.Value;
+            if (maxPageSize != null)
+                this.MaxPageSize = maxPageSize.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -188,7 +190,6 @@ namespace Zephyr.Directory.Ldap
                     }
 
                     nextToken = pagedResponseControl.Cookie;
-                    Console.WriteLine($">> Total Records Found : {entries.Count}");
 
                     // Max Results Retrieved.
                     if (this.MaxResults <= entries.Count)
@@ -336,7 +337,7 @@ namespace Zephyr.Directory.Ldap
                 {
                     if (le.ResultCode == 4)     // Size Limit Exceeded
                     {
-                        response.Message = "Page Size Limit Exceeded.";
+                        response.Message = $"Page Size Limit Exceeded.  Current Value is ${this.MaxPageSize}.  Please Increase This Value.";
                         break;
                     }
                     else

@@ -18,8 +18,8 @@
     </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize></Optimize>
-    <WarningLevel></WarningLevel>
+    <Optimize>true</Optimize>
+    <WarningLevel>6</WarningLevel>
     <Optimize>true</Optimize>
     <WarningLevel>6</WarningLevel>
     <CustomCommands>
