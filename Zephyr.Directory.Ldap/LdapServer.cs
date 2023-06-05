@@ -325,8 +325,7 @@ namespace Zephyr.Directory.Ldap
                 {
                     if (le.ResultCode == 4)     // Size Limit Exceeded
                     {
-                        response.Message = "MaxResults Reached.  Results Are Incomplete.";
-                        response.ResultsIncomplete = true;
+                        response.Message = "Page Size Limit Exceeded.";
                         break;
                     }
                     else
