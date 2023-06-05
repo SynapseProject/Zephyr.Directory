@@ -22,9 +22,6 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchFilter", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchFilter { get; set; }
 
-        [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
-        public List<LdapObject> Records { get; set; }
-
         [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
 
@@ -33,6 +30,9 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
         public string NextToken { get; set; }
+
+        [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
+        public List<LdapObject> Records { get; set; }
 
     }
 }

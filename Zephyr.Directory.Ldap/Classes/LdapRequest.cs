@@ -46,6 +46,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
 
+        [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
+        public string NextToken { get; set; }
+
         [JsonProperty(PropertyName = "wildcardSearch", NullValueHandling = NullValueHandling.Ignore)]
         public bool? WildcardSearch { get; set; }
 
@@ -61,8 +64,5 @@ namespace Zephyr.Directory.Ldap
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "ping", NullValueHandling = NullValueHandling.Ignore)]
         public PingType? Ping { get; set; }
-
-        [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
-        public string NextToken { get; set; }
     }
 }

@@ -1,11 +1,5 @@
 {
 	"objectType": "Group",
 	"searchValue": "*",
-	"searchBase": "OU=TooManyGroups,OU=Testing,DC=sandbox,DC=local",
-	"nextToken": "AQAAAMACAAD/////0QxAuDj8iVcsB/NsEM9CLDOThJCxHOqeq5cmfbDm4k+MBmAJY6UGRoaqgJRieLZmAAAAAAEAAAD/////YYFSSg499oYrK0TOlm4vMDCt7ckQD55ReyceaUpYmvNQAgAAAAAAAAEQCADMzMzMgAAAAAAAAAACAAAAAAAAAAripOlWFk1Kovd8J2ESJBAEAAAABQABANA4AAAAAAAAzzgAAAAAAAD6BwAAAAAAAAAAAAAAAAAAAgAAAAAAAAD/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAFgBAAAAAAAAAQAAAAQAAgABAAAAAAAAAAAAAAD/////AAAAAP////8AAAAA/wAAAAgAAgAMAAIAEAACAAoAAAAAAAAACgAAAEROVF9pbmRleAAAAAAAAAD/AAAA////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////AAAAAABYAAAAAAAAAAEAAAAUAAIAAQAAAAAAAADgSAAAAAAAAP/////QHwAABBAAAAAAAAAFAAAAGAACAAAAAAAcAAIABAAAAAAAAAAgAAIABQAAAH+AAEjgAAAAAAAAAAAAAAA=",
-	"attributes": [
-	],
-	"config": {
-		"maxResults": 1000
-	}
+	"searchBase": "OU=TooManyGroups,OU=Testing,DC=sandbox,DC=local"
 }
