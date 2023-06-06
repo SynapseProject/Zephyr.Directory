@@ -143,15 +143,16 @@ namespace Zephyr.Directory.Ldap
                     response.Success = false;
                 }
 
+                RootDseInfo rootDSE = conn.GetRootDseInfo();
                 if (searchBase == null)
-                    searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+                    searchBase = rootDSE.DefaultNamingContext;
 
                 LdapSearchResults results = null;
                 LdapSearchConstraints options = new LdapSearchConstraints();
                 options.TimeLimit = 0;
                 options.MaxResults = 0;
                 options.ServerTimeLimit = 3600;
-                //options.ReferralFollowing = true;
+                options.ReferralFollowing = true;
 
                 // TODO: Add Pagination Of Results
 
@@ -352,17 +353,12 @@ namespace Zephyr.Directory.Ldap
 
         private void AddValueWithUnknownType(LdapObject rec, string key, LdapAttribute attribute)
         {
-            // TODO: Check for multi-values, GUID, SID, etc...
-            string value = attribute.StringValue;
-            object obj = null;
+            string[] values = attribute.StringValueArray;
 
-            try { obj = int.Parse(value); } catch { }
-            if (obj == null)
-                try { obj = bool.Parse(value); } catch { }
-            if (obj == null)
-                obj = value;
-
-            rec.Attributes.Add(key, obj);
+            if (values.Length > 1)
+                rec.Attributes.Add(key, values);
+            else
+                rec.Attributes.Add(key, values[0]);
         }
 
         static public LdapResponse ReturnError(Exception e, LdapConfig config)
