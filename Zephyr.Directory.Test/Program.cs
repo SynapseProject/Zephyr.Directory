@@ -46,7 +46,7 @@ namespace Zephyr.Directory
                     LdapServer ldap = new LdapServer(request.Config);
                     ldap.Bind(request.Config);
 
-                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes, request.NextToken);
+                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.NextToken);
                     ldap.Disconnect();
                 }
                 catch (Exception e)

@@ -115,12 +115,12 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(LdapConnection.LdapV3, username, password);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, string nextTokenStr = null)
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, string nextTokenStr = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray(), nextTokenStr);
+            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, nextTokenStr);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, string nextTokenStr = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, string nextTokenStr = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
@@ -169,7 +169,11 @@ namespace Zephyr.Directory.Ldap
                     if (attributes?.Length == 0)
                         attributes = new string[] { "" };
 
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
+                    int scope = LdapConnection.ScopeSub;
+                    if (searchScope != null)
+                        scope = (int)searchScope;
+
+                    results = (LdapSearchResults)conn.Search(searchBase, scope, searchFilter, attributes, false, options);
                     while (results.HasMore())
                         entries.Add(results.Next());
 
