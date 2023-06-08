@@ -206,9 +206,6 @@ namespace Zephyr.Directory.Ldap
             if (target.Password == null)
                 target.Password = source.Password;
 
-            if (target.MaxResults == null)
-                target.MaxResults = source.MaxResults;
-
             if (target.MaxRetries == null)
                 target.MaxRetries = source.MaxRetries;
 

@@ -21,19 +21,18 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
-        public int MaxResults { get; set; } = int.MaxValue;
         public int MaxRetries { get; set; } = 0;
         public int MaxPageSize { get; set; } = 512;     // TODO : Get This From Config / Environment Variables
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxResults, maxRetries, maxPageSize, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -44,13 +43,11 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
-            if (maxResults != null)
-                this.MaxResults = maxResults.Value;
             if (maxRetries != null)
                 this.MaxRetries = maxRetries.Value;
             if (maxPageSize != null)
@@ -115,12 +112,12 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(LdapConnection.LdapV3, username, password);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, string nextTokenStr = null)
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, nextTokenStr);
+            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, string nextTokenStr = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
@@ -159,8 +156,13 @@ namespace Zephyr.Directory.Ldap
                 while (true)
                 {
                     int maxPageSize = this.MaxPageSize;
-                    if (this.MaxResults - entries.Count < this.MaxPageSize)
-                        maxPageSize = this.MaxResults - entries.Count;
+
+                    int maxSearchResults = int.MaxValue;
+                    if (maxResults != null)
+                        maxSearchResults = maxResults.Value;
+
+                    if (maxSearchResults - entries.Count < this.MaxPageSize)
+                        maxPageSize = maxSearchResults - entries.Count;
 
                     SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
                     options.SetControls(pagedRequestControl);
@@ -197,7 +199,7 @@ namespace Zephyr.Directory.Ldap
                     nextToken = pagedResponseControl.Cookie;
 
                     // Max Results Retrieved.
-                    if (this.MaxResults <= entries.Count)
+                    if (maxSearchResults <= entries.Count)
                         break;
 
                 }

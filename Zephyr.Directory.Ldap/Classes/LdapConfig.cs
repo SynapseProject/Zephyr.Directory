@@ -42,9 +42,6 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "password", NullValueHandling = NullValueHandling.Ignore)]
         public string Password { get; set; }
 
-        [JsonProperty(PropertyName = "maxResults", NullValueHandling = NullValueHandling.Ignore)]
-        public int? MaxResults { get; set; }
-
         [JsonProperty(PropertyName = "maxRetries", NullValueHandling = NullValueHandling.Ignore)]
         public int? MaxRetries { get; set; }
 

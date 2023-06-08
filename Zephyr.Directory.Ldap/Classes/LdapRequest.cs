@@ -59,6 +59,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchScope", NullValueHandling = NullValueHandling.Ignore)]
         public SearchScopeType? SearchScope { get; set; }
 
+        [JsonProperty(PropertyName = "maxResults", NullValueHandling = NullValueHandling.Ignore)]
+        public int? MaxResults { get; set; }
+
         [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
         public string NextToken { get; set; }
 
