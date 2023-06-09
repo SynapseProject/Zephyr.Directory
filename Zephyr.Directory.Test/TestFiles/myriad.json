@@ -1,9 +1,5 @@
 {
-	"objectType": "User",
+	"objectType": "Group",
 	"searchValue": "*",
-	"attributes": [
-	],
-	"config" :{
-			"maxResults": 10
-	}
+	"searchBase": "OU=TooManyGroups,OU=Testing,DC=sandbox,DC=local"
 }

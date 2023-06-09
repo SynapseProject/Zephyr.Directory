@@ -105,7 +105,6 @@ namespace Zephyr.Directory.Ldap
             { "birthLocation", LdapAttributeTypes.Bytes },
             { "bootFile", LdapAttributeTypes.StringArray },
             { "bootParameter", LdapAttributeTypes.StringArray },
-            { "bp-DN-Multi-04", LdapAttributeTypes.StringArray },
             { "bridgeheadServerListBL", LdapAttributeTypes.StringArray },
             { "bridgeheadTransportList", LdapAttributeTypes.StringArray },
             { "buildingName", LdapAttributeTypes.StringArray },

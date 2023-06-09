@@ -239,9 +239,13 @@ Resources:
             #set($inputRoot = $input.path('$'))
             #set($attrs = $method.request.multivaluequerystring.attr)
             #set($domain = $method.request.querystring.domain)
+            #set($maxPageSize = $method.request.querystring.maxPageSize)
+            #set($maxResults = $method.request.querystring.maxResults)
+            #set($nextToken = $method.request.querystring.nextToken)
+            #set($searchScope = $method.request.querystring.searchScope)
+            #set($searchBase = $method.request.querystring.searchBase)
             #set($searchValue = $util.escapeJavaScript($util.urlDecode($input.params('value'))))
-            {#if($domain != "")"domain": "$domain",#end"objectType": "$util.urlDecode($input.params('type'))","searchValue": "$searchValue"#foreach ($attr in $attrs)#if($foreach.count == 1),"attributes": [#end"$attr"#if($foreach.hasNext),#else]#end#end}
-        IntegrationResponses:
+            {#if($domain != "")"domain": "$domain",#end#if($searchBase != "")"searchBase": "$searchBase",#end#if($searchScope != "")"searchScope": "$searchScope",#end#if($maxResults != "")"maxResults": "$maxResults",#end#if($nextToken != "")"nextToken": "$nextToken",#end"objectType": "$util.urlDecode($input.params('type'))",#foreach ($attr in $attrs)#if($foreach.count == 1)"attributes": [#end"$attr"#if($foreach.hasNext),#else],#end#end#if($maxPageSize != "")"config": { "maxPageSize": "$maxPageSize" },#end"searchValue": "$searchValue"}        IntegrationResponses:
         - StatusCode: 200          
       MethodResponses:
       - StatusCode: 200
@@ -311,7 +315,7 @@ Resources:
 Outputs:
   Version:
     Description: Cloud Formation Template Version
-    Value: 1.0.23132.0
+    Value: 1.1.23159.0
 
   StackName:
     Description: The name of this stack.

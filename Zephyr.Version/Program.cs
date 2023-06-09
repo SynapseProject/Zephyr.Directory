@@ -15,7 +15,7 @@ namespace Zephry.Version
             Console.WriteLine($">>> Project Name : {projectName}");
 
             int major = 1;
-            int minor = 0;
+            int minor = 1;
             int build = (DateTime.Today.Year - 2000) * 1000 + DateTime.Today.DayOfYear;
             int revision = 0;
             string version = $"{major}.{minor}.{build}.{revision}";

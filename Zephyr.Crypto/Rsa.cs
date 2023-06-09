@@ -9,22 +9,11 @@ namespace Zephyr.Crypto
     public class Rsa
     {
         #region RsaKeys
-        public static void GenerateRsaKeys(string keyContainerName = null, string pubPrivFilePath = null, string pubOnlyFilePath = null, int keySize = 0)
+        public static void GenerateRsaKeys(string pubPrivFilePath, string pubOnlyFilePath, int keySize = 0)
         {
-            if (string.IsNullOrWhiteSpace(keyContainerName) && string.IsNullOrWhiteSpace(pubPrivFilePath) && string.IsNullOrWhiteSpace(pubOnlyFilePath))
-                throw new ArgumentException("Invalid argument");
-
-            CspParameters cspParams = new CspParameters
-            {
-                KeyContainerName = keyContainerName
-            };
-            GenerateRsaKeys(cspParams, pubPrivFilePath, pubOnlyFilePath, keySize);
-        }
-        public static void GenerateRsaKeys(CspParameters cspParams, string pubPrivFilePath, string pubOnlyFilePath, int keySize = 0)
-        {
-            RSACryptoServiceProvider rsaKey = keySize > 0 ?
-                new RSACryptoServiceProvider(keySize, cspParams) :
-                new RSACryptoServiceProvider(cspParams);
+            RSA rsaKey = keySize > 0 ?
+                RSA.Create(keySize) :
+                RSA.Create();
 
 
             if (!string.IsNullOrEmpty(pubPrivFilePath))
@@ -44,20 +33,9 @@ namespace Zephyr.Crypto
             }
         }
 
-        public static RSACryptoServiceProvider LoadRsaKeys(string keyContainerName = null, string filePath = null, CspProviderFlags flags = CspProviderFlags.NoFlags)
+        public static RSA LoadRsaKeys(string filePath)
         {
-            CspParameters cspParams = new CspParameters
-            {
-                KeyContainerName = keyContainerName,
-                Flags = flags
-            };
-
-            return LoadRsaKeys(cspParams, !string.IsNullOrWhiteSpace(keyContainerName) ? null : filePath);
-        }
-
-        public static RSACryptoServiceProvider LoadRsaKeys(CspParameters cspParams, string filePath)
-        {
-            RSACryptoServiceProvider rsaKey = new RSACryptoServiceProvider(cspParams);
+            RSA rsaKey = RSA.Create();
 
             if (string.IsNullOrWhiteSpace(filePath))
                 return rsaKey;
@@ -65,8 +43,7 @@ namespace Zephyr.Crypto
             {
                 try
                 {
-                    Uri uri = new Uri(filePath);
-                    string uriContent = WebRequestClient.GetString(uri.ToString());
+                    string uriContent = File.ReadAllText(filePath);
                     try { rsaKey.FromXmlString(uriContent); }
                     catch { rsaKey.FromXmlStringZephyr(uriContent); }
                 }
@@ -91,118 +68,51 @@ namespace Zephyr.Crypto
 
 
         #region Encrypt
-        public static string EncryptFromFileKeys(string filePath, string value)
-        {
-            return Encrypt(filePath: filePath, value: value);
-        }
-
-        public static string EncryptFromFileKeys(string filePath, string value, CspProviderFlags flags)
-        {
-            return Encrypt(filePath: filePath, flags: flags, value: value);
-        }
-
-        public static string EncryptFromContainerKeys(string keyContainerName, string value)
-        {
-            return Encrypt(keyContainerName: keyContainerName, value: value);
-        }
-
-        public static string EncryptFromContainerKeys(string keyContainerName, string value, CspProviderFlags flags)
-        {
-            return Encrypt(keyContainerName: keyContainerName, flags: flags, value: value);
-        }
-
-        public static string Encrypt(string keyContainerName = null, string filePath = null, CspProviderFlags flags = CspProviderFlags.NoFlags, string value = null)
+        public static string Encrypt(string filePath, string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Invalid argument");
 
-            RSACryptoServiceProvider rsa = null;
-            if (!string.IsNullOrWhiteSpace(keyContainerName))   // container name takes precedence over file
-                rsa = LoadRsaKeys(keyContainerName: keyContainerName, flags: flags);
-            else if (!string.IsNullOrWhiteSpace(filePath))
-                rsa = LoadRsaKeys(filePath: filePath, flags: flags);
+            RSA rsa = null;
+            if (!string.IsNullOrWhiteSpace(filePath))
+                rsa = LoadRsaKeys(filePath);
             else
                 throw new ArgumentException("Missing key container name or path to key file.");
 
             return Encrypt(rsa, value);
         }
 
-        public static string Encrypt(RSACryptoServiceProvider rsa, string value)
+        public static string Encrypt(RSA rsa, string value)
         {
             byte[] valueBytes = Encoding.ASCII.GetBytes(value);
-            byte[] encrypted = rsa.Encrypt(valueBytes, false);
+            byte[] encrypted = rsa.Encrypt(valueBytes, RSAEncryptionPadding.Pkcs1);
             return Convert.ToBase64String(encrypted);
         }
         #endregion
 
 
         #region Decrypt
-        public static string DecryptFromFileKeys(string filePath, string value)
-        {
-            return Decrypt(filePath: filePath, value: value);
-        }
-
-        public static string DecryptFromFileKeys(string filePath, string value, CspProviderFlags flags)
-        {
-            return Decrypt(filePath: filePath, flags: flags, value: value);
-        }
-
-        public static string DecryptFromContainerKeys(string keyContainerName, string value)
-        {
-            return Decrypt(keyContainerName: keyContainerName, value: value);
-        }
-
-        public static string DecryptFromContainerKeys(string keyContainerName, string value, CspProviderFlags flags)
-        {
-            return Decrypt(keyContainerName: keyContainerName, flags: flags, value: value);
-        }
-
-        public static string Decrypt(string keyContainerName = null, string filePath = null, CspProviderFlags flags = CspProviderFlags.NoFlags, string value = null)
+        public static string Decrypt(string filePath, string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException("Invalid argument");
 
-            RSACryptoServiceProvider rsa = null;
-            // container name takes precedence over file
-            if (!string.IsNullOrWhiteSpace(keyContainerName))
-                // set the UseExistingKey so that rsacryptoserviceprovider doesnt go and generate new keys
-                rsa = LoadRsaKeys(keyContainerName: keyContainerName, flags: flags | CspProviderFlags.UseExistingKey);
-            else if (!string.IsNullOrWhiteSpace(filePath))
-                rsa = LoadRsaKeys(filePath: filePath, flags: flags);
+            RSA rsa = null;
+            if (!string.IsNullOrWhiteSpace(filePath))
+                rsa = LoadRsaKeys(filePath);
             else
                 throw new ArgumentException("Missing key container name or path to key file.");
 
             return Decrypt(rsa, value);
         }
 
-        public static string Decrypt(RSACryptoServiceProvider rsa, string value)
+        public static string Decrypt(RSA rsa, string value)
         {
             byte[] valueBytes = Convert.FromBase64String(value);
-            byte[] decrypted = rsa.Decrypt(valueBytes, false);
+            byte[] decrypted = rsa.Decrypt(valueBytes, RSAEncryptionPadding.Pkcs1);
             return Encoding.ASCII.GetString(decrypted);
         }
         #endregion
-
-
-        public static bool KeyContainerExists(string keyContainerName)
-        {
-            CspParameters cspParams = new CspParameters
-            {
-                Flags = CspProviderFlags.UseExistingKey,
-                KeyContainerName = keyContainerName
-            };
-
-            try
-            {
-                new RSACryptoServiceProvider(cspParams);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-
-        }
     }
 
     //https://github.com/dotnet/core/issues/874
