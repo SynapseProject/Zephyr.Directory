@@ -48,7 +48,7 @@ namespace Zephyr.Crypto
                 byte[] keyBytes = password.GetBytes(_keySize / 8);
 
                 // Create uninitialized Rijndael encryption object.
-                RijndaelManaged symmetricKey = new RijndaelManaged();
+                Aes symmetricKey = Aes.Create("AesManaged");
 
                 // It is reasonable to set encryption mode to Cipher Block Chaining
                 // (CBC). Use default options for other symmetric key parameters.
@@ -129,7 +129,7 @@ namespace Zephyr.Crypto
                 byte[] keyBytes = password.GetBytes(_keySize / 8);
 
                 // Create uninitialized Rijndael encryption object.
-                RijndaelManaged symmetricKey = new RijndaelManaged();
+                Aes symmetricKey = Aes.Create("AesManaged");
 
                 // It is reasonable to set encryption mode to Cipher Block Chaining
                 // (CBC). Use default options for other symmetric key parameters.

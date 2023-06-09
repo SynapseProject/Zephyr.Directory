@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Novell.Directory.Ldap;
 using Novell.Directory.Ldap.SearchExtensions;
 using Novell.Directory.Ldap.Utilclass;
+using Novell.Directory.Ldap.Controls;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -20,18 +21,18 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
-        public int MaxResults { get; set; } = 1000;
         public int MaxRetries { get; set; } = 0;
+        public int MaxPageSize { get; set; } = 512;     // TODO : Get This From Config / Environment Variables
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxResults, config.MaxRetries, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxResults, maxRetries, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -42,15 +43,15 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxResults, int? maxRetries, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
             this.UseSSL = useSSL;
-            if (maxResults != null)
-                this.MaxResults = maxResults.Value;
             if (maxRetries != null)
                 this.MaxRetries = maxRetries.Value;
+            if (maxPageSize != null)
+                this.MaxPageSize = maxPageSize.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -111,14 +112,16 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(LdapConnection.LdapV3, username, password);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes)
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray());
+            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
         {
             LdapResponse response = new LdapResponse();
+            List<LdapEntry> entries = new List<LdapEntry>();
+            byte[] nextToken = Utils.Base64ToBytes(nextTokenStr);
 
             try
             {
@@ -137,23 +140,75 @@ namespace Zephyr.Directory.Ldap
                     response.Success = false;
                 }
 
+                RootDseInfo rootDSE = conn.GetRootDseInfo();
                 if (searchBase == null)
-                    searchBase = conn.GetRootDseInfo().DefaultNamingContext;
+                    searchBase = rootDSE.DefaultNamingContext;
 
                 LdapSearchResults results = null;
-                // TODO : Set Search Constrains
                 LdapSearchConstraints options = new LdapSearchConstraints();
                 options.TimeLimit = 0;
-                options.MaxResults = this.MaxResults;
+                options.MaxResults = 0;
                 options.ServerTimeLimit = 3600;
-                //options.ReferralFollowing = true;
+                options.ReferralFollowing = true;
 
-                if (attributes?.Length == 0)
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, new string[] { "" }, false, options);
-                else
-                    results = (LdapSearchResults)conn.Search(searchBase, LdapConnection.ScopeSub, searchFilter, attributes, false, options);
+                // TODO: Add Pagination Of Results
 
-                response = ParseResults(results);
+                while (true)
+                {
+                    int maxPageSize = this.MaxPageSize;
+
+                    int maxSearchResults = int.MaxValue;
+                    if (maxResults != null)
+                        maxSearchResults = maxResults.Value;
+
+                    if (maxSearchResults - entries.Count < this.MaxPageSize)
+                        maxPageSize = maxSearchResults - entries.Count;
+
+                    SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
+                    options.SetControls(pagedRequestControl);
+
+                    // No Attributes Will Be Returned
+                    if (attributes?.Length == 0)
+                        attributes = new string[] { "" };
+
+                    int scope = LdapConnection.ScopeSub;
+                    if (searchScope != null)
+                        scope = (int)searchScope;
+
+                    results = (LdapSearchResults)conn.Search(searchBase, scope, searchFilter, attributes, false, options);
+                    while (results.HasMore())
+                        entries.Add(results.Next());
+
+                    // Get PageResponse
+                    SimplePagedResultsControl pagedResponseControl = null;
+                    foreach (LdapControl control in results.ResponseControls)
+                    {
+                        if (control is SimplePagedResultsControl)
+                        {
+                            pagedResponseControl = (SimplePagedResultsControl)control;
+                            break;
+                        }
+                    }
+
+                    if (pagedResponseControl == null || pagedResponseControl.Cookie.Length == 0)
+                    {
+                        nextToken = null;
+                        break;
+                    }
+
+                    nextToken = pagedResponseControl.Cookie;
+
+                    // Max Results Retrieved.
+                    if (maxSearchResults <= entries.Count)
+                        break;
+
+                }
+
+                response = ParseResults(entries);
+
+                // If there are still more records, pass back the Next Token in the response.
+                if (nextToken != null && nextToken.Length > 0)
+                    response.NextToken = Utils.BytesToBase64(nextToken);
 
             }
             catch (Exception e)
@@ -169,17 +224,15 @@ namespace Zephyr.Directory.Ldap
             return response;
         }
 
-        private LdapResponse ParseResults(LdapSearchResults results)
+        private LdapResponse ParseResults(List<LdapEntry> entries)
         {
             LdapResponse response = new LdapResponse();
             response.Records = new List<LdapObject>();
 
-            while (results.HasMore())
+            foreach (LdapEntry record in entries)
             {
                 try
                 {
-                    LdapEntry record = results.Next();
-
                     LdapObject rec = new LdapObject();
                     rec.DistinguishedName = record.Dn;
 
@@ -291,8 +344,7 @@ namespace Zephyr.Directory.Ldap
                 {
                     if (le.ResultCode == 4)     // Size Limit Exceeded
                     {
-                        response.Message = "MaxResults Reached.  Results Are Incomplete.";
-                        response.ResultsIncomplete = true;
+                        response.Message = $"Page Size Limit Exceeded.  Current Value is ${this.MaxPageSize}.  Please Increase This Value.";
                         break;
                     }
                     else
@@ -300,22 +352,19 @@ namespace Zephyr.Directory.Ldap
                 }
             }
 
+            response.TotalRecords = entries.Count;
+
             return response;
         }
 
         private void AddValueWithUnknownType(LdapObject rec, string key, LdapAttribute attribute)
         {
-            // TODO: Check for multi-values, GUID, SID, etc...
-            string value = attribute.StringValue;
-            object obj = null;
+            string[] values = attribute.StringValueArray;
 
-            try { obj = int.Parse(value); } catch { }
-            if (obj == null)
-                try { obj = bool.Parse(value); } catch { }
-            if (obj == null)
-                obj = value;
-
-            rec.Attributes.Add(key, obj);
+            if (values.Length > 1)
+                rec.Attributes.Add(key, values);
+            else
+                rec.Attributes.Add(key, values[0]);
         }
 
         static public LdapResponse ReturnError(Exception e, LdapConfig config)

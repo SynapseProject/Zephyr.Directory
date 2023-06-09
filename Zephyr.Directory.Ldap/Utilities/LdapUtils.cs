@@ -167,6 +167,9 @@ namespace Zephyr.Directory.Ldap
             if (config.Port == null)
                 config.Port = config.UseSSL == true ? 636 : 389;
 
+            if (config.MaxPageSize == null)
+                config.MaxPageSize = 512;
+
             return config;
         }
 
@@ -203,11 +206,11 @@ namespace Zephyr.Directory.Ldap
             if (target.Password == null)
                 target.Password = source.Password;
 
-            if (target.MaxResults == null)
-                target.MaxResults = source.MaxResults;
-
             if (target.MaxRetries == null)
                 target.MaxRetries = source.MaxRetries;
+
+            if (target.MaxPageSize == null)
+                target.MaxPageSize = source.MaxPageSize;
 
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);

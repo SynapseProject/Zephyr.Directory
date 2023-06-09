@@ -22,14 +22,17 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchFilter", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchFilter { get; set; }
 
-        [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
-        public List<LdapObject> Records { get; set; }
-
         [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }
 
-        [JsonProperty(PropertyName = "resultsIncomplete", NullValueHandling = NullValueHandling.Ignore)]
-        public bool? ResultsIncomplete { get; set; }
+        [JsonProperty(PropertyName = "totalRecords", NullValueHandling = NullValueHandling.Ignore)]
+        public int TotalRecords { get; set; } = 0;
+
+        [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
+        public string NextToken { get; set; }
+
+        [JsonProperty(PropertyName = "records", NullValueHandling = NullValueHandling.Ignore)]
+        public List<LdapObject> Records { get; set; }
 
     }
 }

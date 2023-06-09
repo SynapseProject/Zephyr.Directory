@@ -5,6 +5,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 
+using Novell.Directory.Ldap;
+
 
 namespace Zephyr.Directory.Ldap
 {
@@ -31,6 +33,13 @@ namespace Zephyr.Directory.Ldap
         NoEcho
     }
 
+    public enum SearchScopeType
+    {
+        All = LdapConnection.ScopeSub,      // Search the base object and all entries within its subtree
+        One = LdapConnection.ScopeOne,      // Search only the immediate subordinates of the base object
+        Base = LdapConnection.ScopeBase     // Search only the base object
+    }
+
     public class LdapRequest
     {
         [JsonConverter(typeof(StringEnumConverter))]
@@ -45,6 +54,16 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty(PropertyName = "searchScope", NullValueHandling = NullValueHandling.Ignore)]
+        public SearchScopeType? SearchScope { get; set; }
+
+        [JsonProperty(PropertyName = "maxResults", NullValueHandling = NullValueHandling.Ignore)]
+        public int? MaxResults { get; set; }
+
+        [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
+        public string NextToken { get; set; }
 
         [JsonProperty(PropertyName = "wildcardSearch", NullValueHandling = NullValueHandling.Ignore)]
         public bool? WildcardSearch { get; set; }
