@@ -23,17 +23,18 @@ namespace Zephyr.Directory.Ldap
         public int Port { get; set; }
         public bool UseSSL { get; set; }
         public int MaxRetries { get; set; } = 0;
-        public int MaxPageSize { get; set; } = 512;     // TODO : Get This From Config / Environment Variables
+        public int MaxPageSize { get; set; } = 512;
+        public bool FollowReferrals { get; set; } = false;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxRetries, maxPageSize, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -44,7 +45,7 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
@@ -53,6 +54,8 @@ namespace Zephyr.Directory.Ldap
                 this.MaxRetries = maxRetries.Value;
             if (maxPageSize != null)
                 this.MaxPageSize = maxPageSize.Value;
+            if (followReferrals != null)
+                this.FollowReferrals = followReferrals.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -124,11 +127,8 @@ namespace Zephyr.Directory.Ldap
             List<LdapEntry> entries = new List<LdapEntry>();
             byte[] nextToken = Utils.Base64ToBytes(nextTokenStr);
 
-            Stopwatch timer = new Stopwatch();
-
             try
             {
-                timer.Start();
                 if (String.IsNullOrWhiteSpace(searchFilter))
                     throw new Exception("Search Filter Not Provided");
 
@@ -148,18 +148,13 @@ namespace Zephyr.Directory.Ldap
                 if (searchBase == null)
                     searchBase = rootDSE.DefaultNamingContext;
 
-                Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - GotRootDseInfo");
-
                 ILdapSearchResults results = null;
                 LdapSearchConstraints options = new LdapSearchConstraints();
                 options.TimeLimit = 0;
                 options.MaxResults = 0;
                 options.ServerTimeLimit = 3600;
-                //options.ReferralFollowing = true;     // Commented Out Because Referral Following When Searching on Root Search Base Causes Delay On HasMore function.
+                options.ReferralFollowing = this.FollowReferrals;
 
-                Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Set Search Constraints");
-
-                int searchCount = 1;
                 while (true)
                 {
                     int maxPageSize = this.MaxPageSize;
@@ -174,8 +169,6 @@ namespace Zephyr.Directory.Ldap
                     SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
                     options.SetControls(pagedRequestControl);
 
-                    Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Set SimplePagedResultsControl");
-
                     // No Attributes Will Be Returned
                     if (attributes?.Length == 0)
                         attributes = new string[] { "" };
@@ -184,18 +177,13 @@ namespace Zephyr.Directory.Ldap
                     if (searchScope != null)
                         scope = (int)searchScope;
 
-                    Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Starting Search #{searchCount}");
-
                     results = conn.Search(searchBase, scope, searchFilter, attributes, false, options);
-
-                    Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Finished Search #{searchCount}");
 
                     while (results.HasMore())
                     {
                         try
                         {
                             entries.Add(results.Next());
-                            Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Added Record");
                         }
                         catch (LdapReferralException lre)
                         {
@@ -205,8 +193,6 @@ namespace Zephyr.Directory.Ldap
                                 throw lre;
                         }
                     }
-
-                    Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Added Results To Entries");
 
                     // Get PageResponse
                     SimplePagedResultsControl pagedResponseControl = null;
@@ -218,9 +204,6 @@ namespace Zephyr.Directory.Ldap
                             break;
                         }
                     }
-
-                    Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Found PagedResponseControl");
-
 
                     if (pagedResponseControl == null || pagedResponseControl.Cookie.Length == 0)
                     {
@@ -236,11 +219,7 @@ namespace Zephyr.Directory.Ldap
 
                 }
 
-                Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Starting Parsing of Results");
-
                 response = ParseResults(entries);
-
-                Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Finished Parsing Results");
 
                 // If there are still more records, pass back the Next Token in the response.
                 if (nextToken != null && nextToken.Length > 0)
@@ -248,8 +227,6 @@ namespace Zephyr.Directory.Ldap
             }
             catch (Exception e)
             {
-                Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Error Occured");
-
                 response.Message = e.Message;
                 response.Success = false;
             }
@@ -257,9 +234,6 @@ namespace Zephyr.Directory.Ldap
             response.Server = this.ToString();
             response.SearchBase = searchBase;
             response.SearchFilter = searchFilter;
-
-            Console.WriteLine($">> {timer.ElapsedMilliseconds} ms - Returning Response");
-            timer.Stop();
 
             return response;
         }

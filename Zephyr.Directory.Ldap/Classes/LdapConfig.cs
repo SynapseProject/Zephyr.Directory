@@ -48,6 +48,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "maxPageSize", NullValueHandling = NullValueHandling.Ignore)]
         public int? MaxPageSize { get; set; }
 
+        [JsonProperty(PropertyName = "followReferrals", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? FollowReferrals { get; set; }
+
         [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
         public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
 

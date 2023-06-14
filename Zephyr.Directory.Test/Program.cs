@@ -58,8 +58,9 @@ namespace Zephyr.Directory
             Console.WriteLine($">> ---------------------------");
             Console.WriteLine($">> Search Base : {response.SearchBase}");
             Console.WriteLine($">> Total Records Found : {response.TotalRecords}");
-            foreach (LdapObject record in response.Records)
-                Console.WriteLine($"  >> {record.DistinguishedName}");
+            if (response.Records != null)
+                foreach (LdapObject record in response.Records)
+                    Console.WriteLine($"  >> {record.DistinguishedName}");
             //Console.WriteLine(JsonTools.Serialize(response, true));
 
         }
