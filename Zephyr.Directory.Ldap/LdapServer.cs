@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics;
 
 
 using System.Text;
@@ -22,17 +23,18 @@ namespace Zephyr.Directory.Ldap
         public int Port { get; set; }
         public bool UseSSL { get; set; }
         public int MaxRetries { get; set; } = 0;
-        public int MaxPageSize { get; set; } = 512;     // TODO : Get This From Config / Environment Variables
+        public int MaxPageSize { get; set; } = 512;
+        public bool FollowReferrals { get; set; } = false;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxRetries, maxPageSize, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -43,7 +45,7 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
@@ -52,6 +54,8 @@ namespace Zephyr.Directory.Ldap
                 this.MaxRetries = maxRetries.Value;
             if (maxPageSize != null)
                 this.MaxPageSize = maxPageSize.Value;
+            if (followReferrals != null)
+                this.FollowReferrals = followReferrals.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -144,14 +148,12 @@ namespace Zephyr.Directory.Ldap
                 if (searchBase == null)
                     searchBase = rootDSE.DefaultNamingContext;
 
-                LdapSearchResults results = null;
+                ILdapSearchResults results = null;
                 LdapSearchConstraints options = new LdapSearchConstraints();
                 options.TimeLimit = 0;
                 options.MaxResults = 0;
                 options.ServerTimeLimit = 3600;
-                options.ReferralFollowing = true;
-
-                // TODO: Add Pagination Of Results
+                options.ReferralFollowing = this.FollowReferrals;
 
                 while (true)
                 {
@@ -175,9 +177,22 @@ namespace Zephyr.Directory.Ldap
                     if (searchScope != null)
                         scope = (int)searchScope;
 
-                    results = (LdapSearchResults)conn.Search(searchBase, scope, searchFilter, attributes, false, options);
+                    results = conn.Search(searchBase, scope, searchFilter, attributes, false, options);
+
                     while (results.HasMore())
-                        entries.Add(results.Next());
+                    {
+                        try
+                        {
+                            entries.Add(results.Next());
+                        }
+                        catch (LdapReferralException lre)
+                        {
+                            if (lre.ResultCode == 10)   // Referral
+                                continue;
+                            else
+                                throw lre;
+                        }
+                    }
 
                     // Get PageResponse
                     SimplePagedResultsControl pagedResponseControl = null;
@@ -209,7 +224,6 @@ namespace Zephyr.Directory.Ldap
                 // If there are still more records, pass back the Next Token in the response.
                 if (nextToken != null && nextToken.Length > 0)
                     response.NextToken = Utils.BytesToBase64(nextToken);
-
             }
             catch (Exception e)
             {

@@ -212,6 +212,9 @@ namespace Zephyr.Directory.Ldap
             if (target.MaxPageSize == null)
                 target.MaxPageSize = source.MaxPageSize;
 
+            if (target.FollowReferrals == null)
+                target.FollowReferrals = source.FollowReferrals;
+
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
 

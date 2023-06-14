@@ -1,5 +1,7 @@
 {
 	"objectType": "Group",
-	"searchValue": "*",
-	"searchBase": "OU=TooManyGroups,OU=Testing,DC=sandbox,DC=local"
+	"searchValue": "TooManyGroup_0019",
+	"attributes": [
+		"cn"
+	]
 }
