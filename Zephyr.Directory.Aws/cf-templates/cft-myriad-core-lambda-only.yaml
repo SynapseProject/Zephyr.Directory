@@ -78,7 +78,7 @@ Resources:
         S3Bucket: !Ref MyriadCodeBucketName
         S3Key: !Ref MyriadCodeBucketKey
       Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
-      Runtime: dotnetcore3.1
+      Runtime: dotnet6
       Timeout: 600
       VpcConfig:
         !If

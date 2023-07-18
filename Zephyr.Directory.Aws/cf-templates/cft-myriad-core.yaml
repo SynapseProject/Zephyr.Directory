@@ -128,7 +128,7 @@ Resources:
         S3Bucket: !Ref MyriadCodeBucketName
         S3Key: !Ref MyriadCodeBucketKey
       Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
-      Runtime: dotnetcore3.1
+      Runtime: dotnet6
       Timeout: 600
       VpcConfig:
         !If
@@ -245,7 +245,8 @@ Resources:
             #set($searchScope = $method.request.querystring.searchScope)
             #set($searchBase = $method.request.querystring.searchBase)
             #set($searchValue = $util.escapeJavaScript($util.urlDecode($input.params('value'))))
-            {#if($domain != "")"domain": "$domain",#end#if($searchBase != "")"searchBase": "$searchBase",#end#if($searchScope != "")"searchScope": "$searchScope",#end#if($maxResults != "")"maxResults": "$maxResults",#end#if($nextToken != "")"nextToken": "$nextToken",#end"objectType": "$util.urlDecode($input.params('type'))",#foreach ($attr in $attrs)#if($foreach.count == 1)"attributes": [#end"$attr"#if($foreach.hasNext),#else],#end#end#if($maxPageSize != "")"config": { "maxPageSize": "$maxPageSize" },#end"searchValue": "$searchValue"}        IntegrationResponses:
+            {#if($domain != "")"domain": "$domain",#end#if($searchBase != "")"searchBase": "$searchBase",#end#if($searchScope != "")"searchScope": "$searchScope",#end#if($maxResults != "")"maxResults": "$maxResults",#end#if($nextToken != "")"nextToken": "$nextToken",#end"objectType": "$util.urlDecode($input.params('type'))",#foreach ($attr in $attrs)#if($foreach.count == 1)"attributes": [#end"$attr"#if($foreach.hasNext),#else],#end#end#if($maxPageSize != "")"config": { "maxPageSize": "$maxPageSize" },#end"searchValue": "$searchValue"}        
+        IntegrationResponses:
         - StatusCode: 200          
       MethodResponses:
       - StatusCode: 200
