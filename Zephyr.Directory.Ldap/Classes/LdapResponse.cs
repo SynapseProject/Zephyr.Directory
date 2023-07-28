@@ -26,7 +26,7 @@ namespace Zephyr.Directory.Ldap
         public string Message { get; set; }
 
         [JsonProperty(PropertyName = "totalRecords", NullValueHandling = NullValueHandling.Ignore)]
-        public int TotalRecords { get; set; } = 0;
+        public int? TotalRecords { get; set; }
 
         [JsonProperty(PropertyName = "nextToken", NullValueHandling = NullValueHandling.Ignore)]
         public string NextToken { get; set; }

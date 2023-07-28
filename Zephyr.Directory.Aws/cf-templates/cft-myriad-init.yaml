@@ -72,6 +72,12 @@ Resources:
     Properties:
       GroupName: !Ref DefaultSecurityGroupName
       GroupDescription: Default Security Group Used For Running MyriAD Lambda Functions In A VPC.
+      SecurityGroupIngress:
+        CidrIp: 0.0.0.0/0
+        Description: Allows MyriAD To Be Accessed Via HTTPS
+        IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
       SecurityGroupEgress:
         CidrIp: 0.0.0.0/0
         Description: Allows MyriAD To Call Any IP Address
@@ -104,7 +110,7 @@ Resources:
 Outputs:
   Version:
     Description: Cloud Formation Template Version
-    Value: 1.1.23165.0
+    Value: 1.1.23209.0
 
   StackName:
     Description: The name of this stack.

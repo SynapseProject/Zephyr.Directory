@@ -78,7 +78,7 @@ Resources:
         S3Bucket: !Ref MyriadCodeBucketName
         S3Key: !Ref MyriadCodeBucketKey
       Handler: Zephyr.Directory.Aws::Zephyr.Directory.Aws.Ldap::ProcessRequest
-      Runtime: dotnetcore3.1
+      Runtime: dotnet6
       Timeout: 600
       VpcConfig:
         !If
@@ -97,7 +97,7 @@ Resources:
 Outputs:
   Version:
     Description: Cloud Formation Template Version
-    Value: 1.1.23165.0
+    Value: 1.1.23209.0
 
   StackName:
     Description: The name of this stack.
