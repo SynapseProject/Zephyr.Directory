@@ -25,16 +25,17 @@ namespace Zephyr.Directory.Ldap
         public int MaxRetries { get; set; } = 0;
         public int MaxPageSize { get; set; } = 512;
         public bool FollowReferrals { get; set; } = false;
+        public bool IgnoreWarnings { get; set; } = false;
         public Dictionary<string, LdapAttributeTypes> ReturnTypes { get; set; }
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, bool? ignoreWarnings, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, ignoreWarnings, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -45,7 +46,7 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, bool? ignoreWarnings, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
@@ -56,6 +57,8 @@ namespace Zephyr.Directory.Ldap
                 this.MaxPageSize = maxPageSize.Value;
             if (followReferrals != null)
                 this.FollowReferrals = followReferrals.Value;
+            if (ignoreWarnings != null)
+                this.IgnoreWarnings = ignoreWarnings.Value;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -153,7 +156,7 @@ namespace Zephyr.Directory.Ldap
 
 
                 // Validate Attributes Exist In Schema
-                if (attributes != null)
+                if (this.IgnoreWarnings == false && attributes != null)
                 {
                     string schemaDN = conn.GetSchemaDn();
                     LdapSchema schema = conn.FetchSchema(schemaDN);
@@ -240,9 +243,9 @@ namespace Zephyr.Directory.Ldap
 
                 response = ParseResults(entries);
 
-                if (invalidAttributes.Count > 0)
+                if (this.IgnoreWarnings == false && invalidAttributes.Count > 0)
                 {
-                    response.Status = StatusCode.SuccessWithErrors;
+                    response.Status = StatusCode.SuccessWithWarnings;
                     if (invalidAttributes.Count == 1)
                         response.Message += $"Attribute [{String.Join(", ", invalidAttributes)}] Not Found In Schema.";
                     else

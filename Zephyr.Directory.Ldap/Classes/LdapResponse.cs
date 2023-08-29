@@ -12,7 +12,7 @@ namespace Zephyr.Directory.Ldap
     {
         Success,
         Failure,
-        SuccessWithErrors
+        SuccessWithWarnings
     }
 
     public class LdapResponse
