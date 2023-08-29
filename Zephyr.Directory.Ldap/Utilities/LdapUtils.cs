@@ -215,6 +215,9 @@ namespace Zephyr.Directory.Ldap
             if (target.FollowReferrals == null)
                 target.FollowReferrals = source.FollowReferrals;
 
+            if (target.IgnoreWarnings == null)
+                target.IgnoreWarnings = source.IgnoreWarnings;
+
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
 
