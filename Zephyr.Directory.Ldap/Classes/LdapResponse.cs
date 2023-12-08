@@ -26,8 +26,14 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
 
+        [JsonProperty(PropertyName = "searchBases", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> SearchBases{ get; set; }
+
         [JsonProperty(PropertyName = "searchFilter", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchFilter { get; set; }
+
+        [JsonProperty(PropertyName = "searchFilters", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> SearchFilters { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "status", NullValueHandling = NullValueHandling.Ignore)]

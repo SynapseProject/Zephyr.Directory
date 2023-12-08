@@ -12,6 +12,8 @@ using Novell.Directory.Ldap;
 using Novell.Directory.Ldap.SearchExtensions;
 using Novell.Directory.Ldap.Utilclass;
 using Novell.Directory.Ldap.Controls;
+using System.Threading;
+using System.Linq;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -119,17 +121,22 @@ namespace Zephyr.Directory.Ldap
             conn.Bind(LdapConnection.LdapV3, username, password);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
+        public void test(List<ILdapSearchResults> results, string searchBase, int scope, string searchFilter, string[] attributes, bool flag, LdapSearchConstraints options){
+            results.Add(conn.Search(searchBase, scope, searchFilter, attributes, flag, options));
+        }
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<Dictionary<string, string>> MultipleSearches = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr);
+            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr, MultipleSearches);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<Dictionary<string, string>> MultipleSearches = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
             byte[] nextToken = Utils.Base64ToBytes(nextTokenStr);
             List<string> invalidAttributes = new List<string>();
+            List<string> searchBase_list = new List<string>();
+            List<string> searchFilter_list = new List<string>();
 
             try
             {
@@ -168,9 +175,21 @@ namespace Zephyr.Directory.Ldap
                     }
                 }
 
+                if(MultipleSearches!=null){
+                    for(int index =0; index < MultipleSearches.Count; index++){
+                        Dictionary<string,string> i = MultipleSearches.ElementAt(index);
+                        if(i.ContainsKey("searchBase") == false && i.ContainsKey("searchValue") == true){
+                            i.Add("searchBase", searchBase);
+                        }
+                        else{
+                            try { i.Add("searchValue", searchFilter); }
+                            catch { continue; }
+                        }
+                    }
+                }
 
-
-                ILdapSearchResults results = null;
+                // ILdapSearchResults results = null;
+                List<ILdapSearchResults> results = new List<ILdapSearchResults>();
                 LdapSearchConstraints options = new LdapSearchConstraints();
                 options.TimeLimit = 0;
                 options.MaxResults = 0;
@@ -199,31 +218,45 @@ namespace Zephyr.Directory.Ldap
                     if (searchScope != null)
                         scope = (int)searchScope;
 
-                    results = conn.Search(searchBase, scope, searchFilter, attributes, false, options);
-
-                    while (results.HasMore())
-                    {
-                        try
-                        {
-                            entries.Add(results.Next());
-                        }
-                        catch (LdapReferralException lre)
-                        {
-                            if (lre.ResultCode == 10)   // Referral
-                                continue;
-                            else
-                                throw lre;
+                    results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                    if(MultipleSearches != null){
+                        searchBase_list.Add(searchBase);
+                        searchFilter_list.Add(searchFilter);
+                        for(int index = 0; index < MultipleSearches.Count; index++){
+                            var i = MultipleSearches.ElementAt(index);
+                            searchBase_list.Add(i["searchBase"]);
+                            searchFilter_list.Add(i["searchValue"]);
+                            Thread testing_thread = new Thread(() => test(results, searchBase=i["searchBase"],scope, i["searchValue"], attributes, false, options));
+                            testing_thread.Start();
                         }
                     }
-
+                    for(int index =0; index < results.Count; index++){
+                        ILdapSearchResults result = results[index];
+                        while (result.HasMore())
+                        {
+                            try
+                            {
+                                entries.Add(result.Next());
+                            }
+                            catch (LdapReferralException lre)
+                            {
+                                if (lre.ResultCode == 10)   // Referral
+                                    continue;
+                                else
+                                    throw lre;
+                            }
+                        }
+                    }
                     // Get PageResponse
                     SimplePagedResultsControl pagedResponseControl = null;
-                    foreach (LdapControl control in results.ResponseControls)
-                    {
-                        if (control is SimplePagedResultsControl)
+                    foreach(var result in results){
+                        foreach (LdapControl control in result.ResponseControls)
                         {
-                            pagedResponseControl = (SimplePagedResultsControl)control;
-                            break;
+                            if (control is SimplePagedResultsControl)
+                            {
+                                pagedResponseControl = (SimplePagedResultsControl)control;
+                                break;
+                            }
                         }
                     }
 
@@ -264,8 +297,14 @@ namespace Zephyr.Directory.Ldap
             }
 
             response.Server = this.ToString();
-            response.SearchBase = searchBase;
-            response.SearchFilter = searchFilter;
+            if(MultipleSearches != null){
+                response.SearchBases = searchBase_list;
+                response.SearchFilters = searchFilter_list;
+            }
+            else{
+                response.SearchBase = searchBase;
+                response.SearchFilter = searchFilter;
+            }
 
             return response;
         }

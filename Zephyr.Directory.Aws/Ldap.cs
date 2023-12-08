@@ -45,7 +45,7 @@ namespace Zephyr.Directory.Aws
 
                     LdapServer ldap = new LdapServer(request.Config);
                     ldap.Bind(request.Config);
-                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken);
+                    response = ldap.Search(request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken, request.Union);
                     ldap.Disconnect();
                 }
                 catch (Exception e)

@@ -68,6 +68,9 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "wildcardSearch", NullValueHandling = NullValueHandling.Ignore)]
         public bool? WildcardSearch { get; set; }
 
+        [JsonProperty(PropertyName = "Union", NullValueHandling = NullValueHandling.Ignore)]
+        public List<Dictionary<string, string>> Union { get; set; }
+
         [JsonProperty(PropertyName = "attributes", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> Attributes { get; set; }    // null = ALL, empty list = NONE
 
