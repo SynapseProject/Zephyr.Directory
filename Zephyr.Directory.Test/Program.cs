@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
+using System.Text.RegularExpressions;
 using Zephyr.Crypto;
 
 using Zephyr.Directory.Ldap;
@@ -12,7 +12,6 @@ namespace Zephyr.Directory
     {
         static void Main(string[] args)
         {
-
             string content = File.ReadAllText(@"../../../TestFiles/myriad.json");
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
             Console.WriteLine(JsonTools.Serialize(request, true));
@@ -42,6 +41,9 @@ namespace Zephyr.Directory
                 {
                     LdapUtils.ApplyDefaulsAndValidate(request);
                     string searchFilter = LdapUtils.GetSearchString(request);
+                    // LdapUtils.CheckforError(request);
+                    if (request.ObjectType != null && request.Union != null)
+                        throw new FormatException("Warning: Myriad currently does not support this type of call: Union with objectType");
 
                     LdapServer ldap = new LdapServer(request.Config);
                     ldap.Bind(request.Config);
