@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 using Zephyr.Crypto;
+using System.Linq;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -215,6 +216,9 @@ namespace Zephyr.Directory.Ldap
             if (target.FollowReferrals == null)
                 target.FollowReferrals = source.FollowReferrals;
 
+            if (target.IgnoreWarnings == null)
+                target.IgnoreWarnings = source.IgnoreWarnings;
+
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
 
@@ -367,5 +371,16 @@ namespace Zephyr.Directory.Ldap
 
             return rc;
         }
+
+        // public static void CheckforError(LdapRequest request){
+        //     Regex test = new(@"\([^)]*\)");
+        //     for (int i = 0; i < request.Union.Count; i++){
+        //         var index = request.Union.ElementAt(i);
+        //         bool result = test.IsMatch(index["searchValue"]);
+        //         if(!result){
+        //             throw new Exception(String.Format("Error: Search Value in index: {0} is not properly formatted", i));
+        //         }          
+        //     }
+        // }
+        }
     }
-}

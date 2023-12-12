@@ -8,6 +8,13 @@ using Newtonsoft.Json.Serialization;
 
 namespace Zephyr.Directory.Ldap
 {
+    public enum StatusCode
+    {
+        Success,
+        Failure,
+        SuccessWithWarnings
+    }
+
     public class LdapResponse
     {
         [JsonProperty(PropertyName = "success", NullValueHandling = NullValueHandling.Ignore)]
@@ -19,8 +26,18 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
 
+        [JsonProperty(PropertyName = "searchBases", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> SearchBases{ get; set; }
+
         [JsonProperty(PropertyName = "searchFilter", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchFilter { get; set; }
+
+        [JsonProperty(PropertyName = "searchFilters", NullValueHandling = NullValueHandling.Ignore)]
+        public List<string> SearchFilters { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty(PropertyName = "status", NullValueHandling = NullValueHandling.Ignore)]
+        public StatusCode Status { get; set; }
 
         [JsonProperty(PropertyName = "message", NullValueHandling = NullValueHandling.Ignore)]
         public string Message { get; set; }

@@ -2,6 +2,7 @@
 	"objectType": "Group",
 	"searchValue": "TooManyGroup_0019",
 	"attributes": [
-		"cn"
+		"cn",
+		"displayName"
 	]
 }
