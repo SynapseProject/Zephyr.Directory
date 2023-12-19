@@ -56,7 +56,7 @@ namespace Zephyr.Directory
                     response = LdapServer.ReturnError(e, request.Config);
                 }
             }
-
+            Console.WriteLine("Hi");
             Console.WriteLine(JsonTools.Serialize(response, true));
 
         }
