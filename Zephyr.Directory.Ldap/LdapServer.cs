@@ -124,12 +124,12 @@ namespace Zephyr.Directory.Ldap
         public void test(List<ILdapSearchResults> results, string searchBase, int scope, string searchFilter, string[] attributes, bool flag, LdapSearchConstraints options){
             results.Add(conn.Search(searchBase, scope, searchFilter, attributes, flag, options));
         }
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<Dictionary<string, string>> MultipleSearches = null)
+        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
             return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr, MultipleSearches);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<Dictionary<string, string>> MultipleSearches = null)
+        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
@@ -177,13 +177,15 @@ namespace Zephyr.Directory.Ldap
 
                 if(MultipleSearches!=null){
                     for(int index =0; index < MultipleSearches.Count; index++){
-                        Dictionary<string,string> i = MultipleSearches.ElementAt(index);
-                        if(i.ContainsKey("searchBase") == false && i.ContainsKey("searchValue") == true){
-                            i.Add("searchBase", searchBase);
+                        UnionType i = MultipleSearches.ElementAt(index);
+                        if(i.SearchBase == null && i.SearchValue != null){
+                            i.SearchBase = searchBase;
+                        }
+                        else if(i.SearchBase != null && i.SearchValue == null){
+                            i.SearchValue = searchFilter;
                         }
                         else{
-                            try { i.Add("searchValue", searchFilter); }
-                            catch { continue; }
+                            continue;
                         }
                     }
                 }
@@ -224,9 +226,9 @@ namespace Zephyr.Directory.Ldap
                         searchFilter_list.Add(searchFilter);
                         for(int index = 0; index < MultipleSearches.Count; index++){
                             var i = MultipleSearches.ElementAt(index);
-                            searchBase_list.Add(i["searchBase"]);
-                            searchFilter_list.Add(i["searchValue"]);
-                            Thread testing_thread = new Thread(() => test(results, searchBase=i["searchBase"],scope, i["searchValue"], attributes, false, options));
+                            searchBase_list.Add(i.SearchBase);
+                            searchFilter_list.Add(i.SearchValue);
+                            Thread testing_thread = new Thread(() => test(results, searchBase=i.SearchBase,scope, i.SearchValue, attributes, false, options));
                             testing_thread.Start();
                         }
                     }
