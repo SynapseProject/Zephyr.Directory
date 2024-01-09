@@ -14,6 +14,8 @@ using Novell.Directory.Ldap.Utilclass;
 using Novell.Directory.Ldap.Controls;
 using System.Threading;
 using System.Linq;
+using Zephyr.Directory.Ldap;
+using System.Net.Cache;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -124,12 +126,12 @@ namespace Zephyr.Directory.Ldap
         public void test(List<ILdapSearchResults> results, string searchBase, int scope, string searchFilter, string[] attributes, bool flag, LdapSearchConstraints options){
             results.Add(conn.Search(searchBase, scope, searchFilter, attributes, flag, options));
         }
-        public LdapResponse Search(string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
+        public LdapResponse Search(LdapRequest request, string searchBase, string searchFilter, List<string> attributes, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
-            return Search(searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr, MultipleSearches);
+            return Search(request, searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr, MultipleSearches);
         }
 
-        public LdapResponse Search(string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
+        public LdapResponse Search(LdapRequest request, string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
@@ -184,9 +186,7 @@ namespace Zephyr.Directory.Ldap
                         else if(i.SearchBase != null && i.SearchValue == null){
                             i.SearchValue = searchFilter;
                         }
-                        else{
-                            continue;
-                        }
+                        i.SearchValue = LdapUtils.CheckforError(request, i.SearchValue, i.SearchBase);
                     }
                 }
 
