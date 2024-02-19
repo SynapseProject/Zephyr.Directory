@@ -1,8 +1,8 @@
 {
     "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))",
     "attributes": [],
-    "nextToken": "NS0wNA==",
-    "maxResults": 23,
+    "maxResults": 12,
+    "nextToken": "Ni0wMw==",
     "union": [
         {
             "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
