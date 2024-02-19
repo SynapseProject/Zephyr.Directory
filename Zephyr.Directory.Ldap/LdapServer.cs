@@ -16,6 +16,8 @@ using System.Threading;
 using System.Linq;
 using Zephyr.Directory.Ldap;
 using System.Net.Cache;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Linq.Expressions;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -24,6 +26,7 @@ namespace Zephyr.Directory.Ldap
         LdapConnection conn;
 
         public string Server { get; set; }
+        public string TokenType { get; set; }
         public int Port { get; set; }
         public bool UseSSL { get; set; }
         public int MaxRetries { get; set; } = 0;
@@ -34,12 +37,12 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.TokenType, config.AttributeTypes);
         }
 
-        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, bool? ignoreWarnings, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, bool? ignoreWarnings, string token_type, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
-            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, ignoreWarnings, attributeReturnTypes);
+            init(server, port, useSSL, maxRetries, maxPageSize, followReferrals, ignoreWarnings, token_type, attributeReturnTypes);
         }
 
         public override string ToString()
@@ -50,7 +53,7 @@ namespace Zephyr.Directory.Ldap
                 return $"ldap://{this.Server}:{this.Port}";
         }
 
-        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, bool? ignoreWarnings, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
+        private void init(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize,  bool? followReferrals, bool? ignoreWarnings, string tokenType, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
         {
             this.Server = server;
             this.Port = port;
@@ -63,6 +66,8 @@ namespace Zephyr.Directory.Ldap
                 this.FollowReferrals = followReferrals.Value;
             if (ignoreWarnings != null)
                 this.IgnoreWarnings = ignoreWarnings.Value;
+            if (tokenType != null)
+                this.TokenType = tokenType;
             this.ReturnTypes = attributeReturnTypes;
             if (this.ReturnTypes == null)
                 this.ReturnTypes = new Dictionary<string, LdapAttributeTypes>();
@@ -131,11 +136,64 @@ namespace Zephyr.Directory.Ldap
             return Search(request, searchBase, searchFilter, attributes?.ToArray(), searchScope, maxResults, nextTokenStr, MultipleSearches);
         }
 
+        public Tuple<bool, byte[]> CheckForToken(List<ILdapSearchResults> results, List<LdapEntry> entries, byte[] nextToken_checker){
+            bool Flag = true;
+            ILdapSearchResults results2 = results[^1];
+            while (results2.HasMore()){
+                try{entries.Add(results2.Next());}
+                catch (LdapReferralException lre){
+                    if (lre.ResultCode == 10)   // Referral
+                        continue;
+                    else
+                        throw lre;
+                }
+            }
+            SimplePagedResultsControl pagedResponseControl_checker = null;
+            foreach (LdapControl control in results2.ResponseControls)
+            {
+                if (control is SimplePagedResultsControl)
+                {
+                    pagedResponseControl_checker = (SimplePagedResultsControl)control;
+                    break;
+                }
+            }
+            if (pagedResponseControl_checker == null || pagedResponseControl_checker.Cookie.Length == 0){
+                Flag = false;
+                return Tuple.Create(Flag, nextToken_checker);
+            }
+            nextToken_checker = pagedResponseControl_checker.Cookie;
+            return Tuple.Create(Flag, nextToken_checker);
+        }
         public LdapResponse Search(LdapRequest request, string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
             LdapResponse response = new LdapResponse();
             List<LdapEntry> entries = new List<LdapEntry>();
-            byte[] nextToken = Utils.Base64ToBytes(nextTokenStr);
+            string[] parsed_string = null;
+            byte[] nextToken = null;
+            int nextToken_client = 0;
+            int Pick_up_Here = 1;
+            try{
+                try{
+                    nextTokenStr =  Encoding.ASCII.GetString(Utils.Base64ToBytes(nextTokenStr));
+                    parsed_string = nextTokenStr.Split("-");
+                    nextToken_client = Int32.Parse(parsed_string[0]);
+                    Pick_up_Here = Int32.Parse(parsed_string[1]);
+                }
+                catch{
+                    parsed_string = nextTokenStr.Split("-");
+                    nextToken = Utils.Base64ToBytes(parsed_string[0]);
+                    Pick_up_Here = Int32.Parse(parsed_string[1]);
+                }
+                
+            }
+            catch{
+                parsed_string = null;
+                nextToken = Utils.Base64ToBytes(nextTokenStr);
+                Pick_up_Here = 1;
+            }
+            byte[] nextToken_checker = Utils.Base64ToBytes(null);
+            int iteration = 0;
+            string PossibleNextToken = "";
             List<string> invalidAttributes = new List<string>();
             List<string> searchBase_list = new List<string>();
             List<string> searchFilter_list = new List<string>();
@@ -178,6 +236,8 @@ namespace Zephyr.Directory.Ldap
                 }
 
                 if(MultipleSearches!=null){
+                    searchBase_list.Add(searchBase);
+                    searchFilter_list.Add(searchFilter);
                     for(int index =0; index < MultipleSearches.Count; index++){
                         UnionType i = MultipleSearches.ElementAt(index);
                         if(i.SearchBase == null && i.SearchValue != null){
@@ -187,6 +247,8 @@ namespace Zephyr.Directory.Ldap
                             i.SearchValue = searchFilter;
                         }
                         i.SearchValue = LdapUtils.CheckforError(request, i.SearchValue, i.SearchBase);
+                        searchBase_list.Add(i.SearchBase);
+                        searchFilter_list.Add(i.SearchValue);
                     }
                 }
 
@@ -205,13 +267,26 @@ namespace Zephyr.Directory.Ldap
                     int maxSearchResults = int.MaxValue;
                     if (maxResults != null)
                         maxSearchResults = maxResults.Value;
-
+                    
+                    Console.WriteLine(maxSearchResults - entries.Count);
+                    Console.WriteLine(this.MaxPageSize);
                     if (maxSearchResults - entries.Count < this.MaxPageSize)
                         maxPageSize = maxSearchResults - entries.Count;
 
-                    SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
-                    options.SetControls(pagedRequestControl);
-
+                    if(TokenType == "Server"){
+                        SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
+                        options.SetControls(pagedRequestControl);
+                    }
+                    else{
+                        if(nextTokenStr == null){
+                            SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
+                            options.SetControls(pagedRequestControl);
+                        }
+                        else{
+                            SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize+nextToken_client, null);
+                            options.SetControls(pagedRequestControl);
+                        }
+                    }
                     // No Attributes Will Be Returned
                     if (attributes?.Length == 0)
                         attributes = new string[] { "" };
@@ -219,18 +294,148 @@ namespace Zephyr.Directory.Ldap
                     int scope = LdapConnection.ScopeSub;
                     if (searchScope != null)
                         scope = (int)searchScope;
-
-                    results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
-                    if(MultipleSearches != null){
-                        searchBase_list.Add(searchBase);
-                        searchFilter_list.Add(searchFilter);
-                        for(int index = 0; index < MultipleSearches.Count; index++){
-                            var i = MultipleSearches.ElementAt(index);
-                            searchBase_list.Add(i.SearchBase);
-                            searchFilter_list.Add(i.SearchValue);
-                            Thread testing_thread = new Thread(() => test(results, searchBase=i.SearchBase,scope, i.SearchValue, attributes, false, options));
-                            testing_thread.Start();
+                    // If Pick up here is greater than 1, then pick up from Multiple Searches, else start with the original Search
+                    // results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                    int currentRecords = 0;
+                    if (TokenType == "Server"){
+                        results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                        bool Token_present = false;  
+                        Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                        currentRecords = entries.Count;
+                        if(MultipleSearches != null){
+                            iteration = 01;
+                            int recordsLeft = maxSearchResults - currentRecords;
+                            if(!Token_present && recordsLeft != 0){
+                                for(int index = 0; index < MultipleSearches.Count; index++){
+                                    recordsLeft = maxSearchResults - currentRecords;
+                                    LdapSearchConstraints options2 = new LdapSearchConstraints();
+                                    SimplePagedResultsControl new_pagedRequestControl = new SimplePagedResultsControl(recordsLeft, nextToken);
+                                    options2.SetControls(new_pagedRequestControl);
+                                    if(recordsLeft <= maxSearchResults && currentRecords != maxSearchResults){
+                                        var i = MultipleSearches.ElementAt(index);
+                                        Thread testing_thread = new Thread(() => test(results, searchBase=i.SearchBase,scope, i.SearchValue, attributes, false, options2));
+                                        testing_thread.Start();
+                                        testing_thread.Join();
+                                        iteration++;
+                                        Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                                        currentRecords = entries.Count;
+                                        // ILdapSearchResults result2 = results[^1];
+                                        if(Token_present){
+                                            break;
+                                        }
+                                    }
+                                    else{ //When NextToken is Null Myriad errors out.
+                                        // ILdapSearchResults result2 = results;
+                                        Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                                        if(!Token_present){
+                                            iteration++;
+                                            nextToken_checker = BitConverter.GetBytes(0000);
+                                            break;
+                                        }
+                                    }
+                                    // Figure out a way to check if Next token is present.
+                                }
+                            }
+                            else{
+                                if(Token_present){
+                                    nextToken_checker = CheckForToken(results, entries, nextToken_checker).Item2;
+                                    continue;
+                                }
+                            }
                         }
+                    }
+                    else{
+                        //Nextoken will have to be an encoded number to keep the bytes array type
+                        //Parse the string for Pick up here value and the actual next token.
+                        string continue_token = "";
+                        List<LdapEntry> entries_copy = new List<LdapEntry>();
+                        if(Pick_up_Here > 1){
+                            results.Add(conn.Search(MultipleSearches[Pick_up_Here-2].SearchBase, scope, MultipleSearches[Pick_up_Here-2].SearchValue, attributes, false, options));
+                        }
+                        else{
+                            results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                        }
+                        bool Token_present = false;
+                        Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                        if(nextTokenStr != null){
+                            // entries = entries.GetRange(nextToken_client+1, entries.Count);
+                            for(int i =0; i < entries.Count; i++){
+                                if(i < nextToken_client){
+                                    continue;
+                                }
+                                entries_copy.Add(entries[i]);
+                            }
+                            entries = entries_copy;
+                        }
+                        currentRecords = entries.Count;
+                        if(MultipleSearches != null){
+                            iteration = Pick_up_Here;
+                            int recordsLeft = maxSearchResults - currentRecords;
+                            // try{recordsLeft = maxSearchResults+Int32.Parse(nextTokenStr) - currentRecords;}
+                            // catch{recordsLeft = maxSearchResults - currentRecords;}
+                            if(!Token_present && recordsLeft != 0){
+                                string Records_gone_through = "";
+                                for(int index = Pick_up_Here-1; index < MultipleSearches.Count; index++){
+                                    // Now that we got the entries list issue fixed go ahead and implement recordsLeft.
+                                    recordsLeft = maxSearchResults - currentRecords;
+                                    if(recordsLeft <= maxSearchResults && currentRecords != maxSearchResults){
+                                        var i = MultipleSearches.ElementAt(index);
+                                        SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(recordsLeft, null);
+                                        options.SetControls(pagedRequestControl);
+                                        Thread testing_thread = new Thread(() => test(results, searchBase=i.SearchBase,scope, i.SearchValue, attributes, false, options));
+                                        testing_thread.Start();
+                                        testing_thread.Join();
+                                        iteration++;
+                                        Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                                        currentRecords = entries.Count;
+                                        Records_gone_through = recordsLeft.ToString();
+                                        if(Token_present){
+                                            continue_token = $"-0{iteration}";
+                                        }
+                                        if(!Token_present && index == MultipleSearches.Count-1){
+                                            PossibleNextToken = null;
+                                            break;
+                                        }
+                                    }
+                                    else{
+                                        if(Token_present)
+                                            continue_token = $"-0{iteration}";
+                                        else{
+                                            continue_token = $"-0{iteration+1}";
+                                        }
+                                        // try:
+                                        //     PossibleNextToken = Records_gone_through + continueToken
+                                        // except:
+                                        //     PossibleNextToken = str(recordsLeft) + continueToken
+                                        try{
+                                            PossibleNextToken = string.Concat(Records_gone_through, continue_token);
+                                        }
+                                        catch{
+                                            PossibleNextToken = string.Concat(recordsLeft.ToString(), continue_token);
+                                        }
+                                        break;
+                                        
+                                    }
+                                    PossibleNextToken = String.Concat(recordsLeft.ToString(), continue_token);
+                                }
+                            }
+                            else{
+                                if(Token_present){
+                                    continue_token = $"-0{Pick_up_Here}";
+                                    PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token);
+                                }
+                                else{
+                                    continue_token = $"-0{Pick_up_Here+1}";
+                                    if(Pick_up_Here+1  > MultipleSearches.Count){
+                                        PossibleNextToken = null;
+                                    }
+                                    else{
+                                        PossibleNextToken = String.Concat(recordsLeft.ToString(), continue_token);
+                                    }
+                                }
+                            }
+                        }
+                        Console.WriteLine();
                     }
                     for(int index =0; index < results.Count; index++){
                         ILdapSearchResults result = results[index];
@@ -262,14 +467,21 @@ namespace Zephyr.Directory.Ldap
                         }
                     }
 
-                    if (pagedResponseControl == null || pagedResponseControl.Cookie.Length == 0)
+                    if ((pagedResponseControl == null || pagedResponseControl.Cookie.Length == 0) && nextToken_checker == null && String.IsNullOrEmpty(PossibleNextToken))
                     {
                         nextToken = null;
                         break;
                     }
-
-                    nextToken = pagedResponseControl.Cookie;
-
+                    if(nextToken_checker != null){
+                        nextToken = nextToken_checker;
+                    }
+                    else if(!String.IsNullOrEmpty(PossibleNextToken)){
+                        nextToken = Encoding.ASCII.GetBytes(PossibleNextToken);
+                    }
+                    else{
+                        nextToken = pagedResponseControl.Cookie;
+                    }
+                    // nextToken = pagedResponseControl.Cookie;
                     // Max Results Retrieved.
                     if (maxSearchResults <= entries.Count)
                         break;
@@ -289,7 +501,10 @@ namespace Zephyr.Directory.Ldap
 
                 // If there are still more records, pass back the Next Token in the response.
                 if (nextToken != null && nextToken.Length > 0)
-                    response.NextToken = Utils.BytesToBase64(nextToken);
+                    if (iteration >= 1 && string.IsNullOrEmpty(PossibleNextToken))
+                        response.NextToken = String.Concat(Utils.BytesToBase64(nextToken), String.Concat("-", iteration.ToString()));
+                    else
+                        response.NextToken = Utils.BytesToBase64(nextToken);
             }
             catch (Exception e)
             {

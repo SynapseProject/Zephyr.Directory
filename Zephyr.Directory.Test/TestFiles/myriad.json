@@ -1,8 +1,21 @@
 {
-	"objectType": "Group",
-	"searchValue": "TooManyGroup_0019",
-	"attributes": [
-		"cn",
-		"displayName"
-	]
+    "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))",
+    "attributes": [],
+    "nextToken": "NS0wNA==",
+    "maxResults": 23,
+    "union": [
+        {
+            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+        },
+        {
+            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+        },
+        {
+            "searchValue": "(&(objectCategory=user)(memberOf=CN=WS-0096-role_IAM-ADM,OU=DelegationGroups,OU=Spoke-W-0096,OU=Spoke,DC=bp1,DC=ad,DC=bp,DC=com))"
+        }
+    ],
+    "config": {
+        "tokentype": "Client",
+        "ignoreWarnings": true
+    }
 }

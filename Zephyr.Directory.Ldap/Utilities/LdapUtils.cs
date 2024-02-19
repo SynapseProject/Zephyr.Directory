@@ -218,6 +218,9 @@ namespace Zephyr.Directory.Ldap
 
             if (target.IgnoreWarnings == null)
                 target.IgnoreWarnings = source.IgnoreWarnings;
+            
+            if (target.TokenType == null)
+                target.TokenType = source.TokenType;
 
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
@@ -279,7 +282,7 @@ namespace Zephyr.Directory.Ldap
         {
             string searchFilter = null;
 
-            if (request.ObjectType == null && flag == false)
+            if (request.ObjectType == null)
                 searchFilter = request.SearchValue;
             else if (request.ObjectType == null && flag == true)
                 searchFilter = searchValue;
