@@ -274,8 +274,20 @@ namespace Zephyr.Directory.Ldap
                         maxPageSize = maxSearchResults - entries.Count;
 
                     if(TokenType == "Server"){
-                        SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
-                        options.SetControls(pagedRequestControl);
+                        try{
+                            if(nextTokenStr != $"AAAAAA==-{Pick_up_Here}"){
+                                SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
+                                options.SetControls(pagedRequestControl);
+                            }
+                            else{
+                            SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
+                            options.SetControls(pagedRequestControl);
+                            }
+                        }
+                        catch{
+                            SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
+                            options.SetControls(pagedRequestControl);
+                        }
                     }
                     else{
                         if(nextTokenStr == null){
@@ -298,15 +310,20 @@ namespace Zephyr.Directory.Ldap
                     // results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
                     int currentRecords = 0;
                     if (TokenType == "Server"){
-                        results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                        if(Pick_up_Here > 1){
+                            results.Add(conn.Search(MultipleSearches[Pick_up_Here-2].SearchBase, scope, MultipleSearches[Pick_up_Here-2].SearchValue, attributes, false, options));
+                        }
+                        else{
+                            results.Add(conn.Search(searchBase, scope, searchFilter, attributes, false, options));
+                        }
                         bool Token_present = false;  
                         Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
                         currentRecords = entries.Count;
                         if(MultipleSearches != null){
-                            iteration = 01;
+                            iteration = Pick_up_Here;
                             int recordsLeft = maxSearchResults - currentRecords;
                             if(!Token_present && recordsLeft != 0){
-                                for(int index = 0; index < MultipleSearches.Count; index++){
+                                for(int index = Pick_up_Here-1; index < MultipleSearches.Count; index++){
                                     recordsLeft = maxSearchResults - currentRecords;
                                     LdapSearchConstraints options2 = new LdapSearchConstraints();
                                     SimplePagedResultsControl new_pagedRequestControl = new SimplePagedResultsControl(recordsLeft, nextToken);
@@ -339,7 +356,12 @@ namespace Zephyr.Directory.Ldap
                             else{
                                 if(Token_present){
                                     nextToken_checker = CheckForToken(results, entries, nextToken_checker).Item2;
-                                    continue;
+                                }
+                                else{
+                                    if(iteration-1 != MultipleSearches.Count){
+                                        iteration++;
+                                        nextToken_checker = BitConverter.GetBytes(0000);
+                                    }
                                 }
                             }
                         }
@@ -426,7 +448,7 @@ namespace Zephyr.Directory.Ldap
                                 }
                                 else{
                                     continue_token = $"-0{Pick_up_Here+1}";
-                                    if(Pick_up_Here+1  > MultipleSearches.Count){
+                                    if(Pick_up_Here  > MultipleSearches.Count){
                                         PossibleNextToken = null;
                                     }
                                     else{
