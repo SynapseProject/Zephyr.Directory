@@ -14,13 +14,5 @@
             "searchValue": "leegroup_*",
             "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com"
         }
-    ],
-    "config": {
-        "server": "40.119.57.239",
-        "username": "LC1\\leecavazos",
-        "password": "TpMUNmPbeLBmhLQf0iuCnA==",
-        "ssl": "false",
-        "tokentype": "Client",
-        "ignoreWarnings": true
-    }
+    ]
 }

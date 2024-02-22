@@ -457,6 +457,12 @@ namespace Zephyr.Directory.Ldap
                                 }
                             }
                         }
+                        else{
+                            if(Token_present){
+                               continue_token = $"-0{Pick_up_Here}";
+                                PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token); 
+                            }
+                        }
                         Console.WriteLine();
                     }
                     for(int index =0; index < results.Count; index++){

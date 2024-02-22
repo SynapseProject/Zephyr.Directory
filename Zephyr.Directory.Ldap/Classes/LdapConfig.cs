@@ -30,7 +30,7 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "server", NullValueHandling = NullValueHandling.Ignore)]
         public string Server { get; set; }
         
-        [JsonProperty(PropertyName = "tokentype", NullValueHandling = NullValueHandling.Ignore)]
+        [JsonProperty(PropertyName = "TokenType", NullValueHandling = NullValueHandling.Ignore)]
         public string TokenType { get; set; }
 
         [JsonProperty(PropertyName = "port", NullValueHandling = NullValueHandling.Ignore)]
