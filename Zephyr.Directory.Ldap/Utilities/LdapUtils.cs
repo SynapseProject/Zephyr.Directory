@@ -218,6 +218,9 @@ namespace Zephyr.Directory.Ldap
 
             if (target.IgnoreWarnings == null)
                 target.IgnoreWarnings = source.IgnoreWarnings;
+            
+            if (target.TokenType == null)
+                target.TokenType = source.TokenType;
 
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
@@ -275,15 +278,17 @@ namespace Zephyr.Directory.Ldap
             return crypto;
         }
 
-        public static string GetSearchString(LdapRequest request)
+        public static string GetSearchString(LdapRequest request, string searchValue = null, string SearchBase = null, bool flag = false)
         {
             string searchFilter = null;
 
             if (request.ObjectType == null)
                 searchFilter = request.SearchValue;
+            else if (request.ObjectType == null && flag == true)
+                searchFilter = searchValue;
             else
             {
-                string id = GetIdentitySearchString(request);
+                string id = GetIdentitySearchString(request, searchValue, SearchBase, flag);
 
                 if (request.ObjectType == ObjectType.Ou)
                     searchFilter = $"(&(objectCategory=OrganizationalUnit){id})";
@@ -302,10 +307,12 @@ namespace Zephyr.Directory.Ldap
             return searchFilter;
         }
 
-        public static string GetIdentitySearchString(LdapRequest request)
+        public static string GetIdentitySearchString(LdapRequest request, string searchVal = null, string SearchBase = null, bool flag = false)
         {
             string identity = null;
             string searchValue = request.SearchValue;
+            if(flag == true)
+                searchValue = searchVal;
             Guid g = Guid.Empty;
             string dnRegexString = @"^\s*?(cn\s*=|ou\s*=|dc\s*=)";
 
@@ -372,15 +379,11 @@ namespace Zephyr.Directory.Ldap
             return rc;
         }
 
-        // public static void CheckforError(LdapRequest request){
-        //     Regex test = new(@"\([^)]*\)");
-        //     for (int i = 0; i < request.Union.Count; i++){
-        //         var index = request.Union.ElementAt(i);
-        //         bool result = test.IsMatch(index["searchValue"]);
-        //         if(!result){
-        //             throw new Exception(String.Format("Error: Search Value in index: {0} is not properly formatted", i));
-        //         }          
-        //     }
-        // }
+        public static string CheckforError(LdapRequest request, string searchValue, string SearchBase){
+            if(Regex.IsMatch(searchValue, @"\([^)]*\)") == false){
+                searchValue = LdapUtils.GetSearchString(request, searchValue, SearchBase, true);
+            }
+            return searchValue;
+        }
         }
     }

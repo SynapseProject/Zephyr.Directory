@@ -40,6 +40,14 @@ namespace Zephyr.Directory.Ldap
         Base = LdapConnection.ScopeBase     // Search only the base object
     }
 
+    public class UnionType
+    {
+        [JsonProperty(PropertyName = "searchValue", NullValueHandling = NullValueHandling.Ignore)]
+        public string SearchValue { get; set; }
+ 
+        [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
+        public string SearchBase { get; set; }
+    }
     public class LdapRequest
     {
         [JsonConverter(typeof(StringEnumConverter))]
@@ -68,8 +76,8 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "wildcardSearch", NullValueHandling = NullValueHandling.Ignore)]
         public bool? WildcardSearch { get; set; }
 
-        [JsonProperty(PropertyName = "Union", NullValueHandling = NullValueHandling.Ignore)]
-        public List<Dictionary<string, string>> Union { get; set; }
+        [JsonProperty(PropertyName = "union", NullValueHandling = NullValueHandling.Ignore)]
+        public List<UnionType> Union { get; set; }
 
         [JsonProperty(PropertyName = "attributes", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> Attributes { get; set; }    // null = ALL, empty list = NONE
