@@ -275,13 +275,13 @@ namespace Zephyr.Directory.Ldap
 
                     if(TokenType == "Server"){
                         try{
-                            if(nextTokenStr != $"AAAAAA==-{Pick_up_Here}"){
+                            if(nextTokenStr != $"AAAAAA==-{Pick_up_Here}" && nextToken != null){
                                 SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, nextToken);
                                 options.SetControls(pagedRequestControl);
                             }
                             else{
-                            SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
-                            options.SetControls(pagedRequestControl);
+                                SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
+                                options.SetControls(pagedRequestControl);
                             }
                         }
                         catch{

@@ -46,7 +46,12 @@ namespace Zephyr.Directory.Aws
                     //     throw new FormatException("Warning: Myriad currently does not support this type of call: Union with objectType");
                     LdapServer ldap = new LdapServer(request.Config);
                     ldap.Bind(request.Config);
-                    response = ldap.Search(request, request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken, request.Union);
+                    if(request.Config.TokenType == "Server" || request.Config.TokenType == "Client"){
+                        response = ldap.Search(request, request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken, request.Union);
+                    }
+                    else{
+                        throw new FormatException("Warning: TokenType must be set to Server or Client");
+                    }
                     ldap.Disconnect();
                 }
                 catch (Exception e)
