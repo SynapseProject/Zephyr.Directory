@@ -41,10 +41,6 @@ namespace Zephyr.Directory
                 {
                     LdapUtils.ApplyDefaulsAndValidate(request);
                     string searchFilter = LdapUtils.GetSearchString(request);
-                    // LdapUtils.CheckforError(request);
-                    // if (request.ObjectType != null && request.Union != null)
-                    //     throw new FormatException("Warning: Myriad currently does not support this type of call: Union with objectType");
-
                     LdapServer ldap = new LdapServer(request.Config);
                     ldap.Bind(request.Config);
                     if(request.Config.TokenType == "Server" || request.Config.TokenType == "Client"){
