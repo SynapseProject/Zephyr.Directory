@@ -46,7 +46,7 @@ namespace Zephyr.Directory.ASPDotNet.Controllers
         {
             Console.WriteLine(JsonTools.Serialize(request, true));
 
-            LdapResponse response = LdapEngine.Process(request);
+            LdapResponse response = request.Process();
 
             Console.WriteLine(JsonTools.Serialize(response, true));
 

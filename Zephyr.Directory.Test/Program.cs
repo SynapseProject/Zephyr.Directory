@@ -16,7 +16,7 @@ namespace Zephyr.Directory
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
             Console.WriteLine(JsonTools.Serialize(request, true));
 
-            LdapResponse response = LdapEngine.Process(request);
+            LdapResponse response = request.Process();
 
             Console.WriteLine(JsonTools.Serialize(response, true));
 
