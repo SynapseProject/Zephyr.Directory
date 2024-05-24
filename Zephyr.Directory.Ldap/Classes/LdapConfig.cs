@@ -59,6 +59,5 @@ namespace Zephyr.Directory.Ldap
 
         [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
         public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
-
     }
 }
