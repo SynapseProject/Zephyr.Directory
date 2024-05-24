@@ -14,7 +14,7 @@ namespace Zephyr.Directory.Aws
     {
         public static LdapResponse ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {
-            LdapResponse response = request.Process();
+            LdapResponse response = LdapEngine.Process(request);
             return response;
         }
     }
