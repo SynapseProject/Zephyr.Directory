@@ -8,6 +8,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Zephyr.Directory.Ldap
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum StatusCode
     {
         Success,

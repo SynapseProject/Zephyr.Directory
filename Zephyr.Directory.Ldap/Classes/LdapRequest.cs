@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 using Novell.Directory.Ldap;
@@ -11,6 +12,7 @@ using Zephyr.Crypto;
 
 namespace Zephyr.Directory.Ldap
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum ObjectType
     {
         User,                   // User and Contact Objects
@@ -28,12 +30,14 @@ namespace Zephyr.Directory.Ldap
         DistinguishedName       // Returns object by DistinguishedName
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum PingType
     {
         Echo,
         NoEcho
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum SearchScopeType
     {
         All = LdapConnection.ScopeSub,      // Search the base object and all entries within its subtree
