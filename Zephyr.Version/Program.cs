@@ -11,9 +11,6 @@ namespace Zephry.Version
             string projectDir = args[0];
             string projectName = Path.GetFileName(projectDir);  // Since ${ProjectDir} Doesn't Include Trailing Slash
 
-            Console.WriteLine($">>> Project Dir  : {projectDir}");
-            Console.WriteLine($">>> Project Name : {projectName}");
-
             int major = 1;
             int minor = 1;
             int build = (DateTime.Today.Year - 2000) * 1000 + DateTime.Today.DayOfYear;
@@ -28,7 +25,6 @@ namespace Zephry.Version
             };
 
             string filename = projectDir + "/Properties/AssemblyInfo.cs";
-            Console.WriteLine($">>> AssemblyFile : {filename}");
             RegexReplace(filename, patterns, versions);
 
             // Update Cloud Formation Templates

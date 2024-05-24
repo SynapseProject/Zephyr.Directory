@@ -49,6 +49,7 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
     }
+
     public class LdapRequest
     {
         [JsonConverter(typeof(StringEnumConverter))]
@@ -100,9 +101,6 @@ namespace Zephyr.Directory.Ldap
             bool isEncryptionRequest = this.Crypto?.Text != null;
             bool isPing = this.Ping.HasValue;
 
-            if (!isEncryptionRequest && !isPing)
-                Console.WriteLine("REQUEST - " + JsonTools.Serialize(this, false));
-
             if (isEncryptionRequest)
             {
                 LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(this.Crypto);
@@ -141,9 +139,6 @@ namespace Zephyr.Directory.Ldap
                     response = LdapServer.ReturnError(e, this.Config);
                 }
             }
-
-            if (!isEncryptionRequest && !isPing)
-                Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false));
 
             return response;
         }

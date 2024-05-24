@@ -305,8 +305,6 @@ namespace Zephyr.Directory.Ldap
                     if (maxResults != null)
                         maxSearchResults = maxResults.Value;
                     
-                    Console.WriteLine(maxSearchResults - entries.Count);
-                    Console.WriteLine(this.MaxPageSize);
                     if (maxSearchResults - entries.Count < this.MaxPageSize)
                         maxPageSize = maxSearchResults - entries.Count;
                     //Get Controls for the LDAP Search
@@ -475,7 +473,6 @@ namespace Zephyr.Directory.Ldap
                                 PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token); 
                             }
                         }
-                        Console.WriteLine();
                     }
                     for(int index =0; index < results.Count; index++){
                         ILdapSearchResults result = results[index];

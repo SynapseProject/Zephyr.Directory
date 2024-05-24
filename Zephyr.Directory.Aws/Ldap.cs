@@ -14,7 +14,17 @@ namespace Zephyr.Directory.Aws
     {
         public static LdapResponse ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {
+            bool isEncryptionRequest = request.Crypto?.Text != null;
+            bool isPing = request.Ping.HasValue;
+
+            if (!isEncryptionRequest && !isPing)
+                Console.WriteLine("REQUEST - " + JsonTools.Serialize(request, false));
+
             LdapResponse response = request.Process();
+
+            if (!isEncryptionRequest && !isPing)
+                Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false));
+
             return response;
         }
     }
