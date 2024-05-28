@@ -25,13 +25,23 @@ namespace Zephyr.Directory.Ldap
         BooleanArray        // Return as a list of Booleans ( ex: [ true, true, false ] )
     }
 
+    public enum OutputType{
+        Json,
+        CSV,
+        YAML
+    }
+
     public class LdapConfig
     {
         [JsonProperty(PropertyName = "server", NullValueHandling = NullValueHandling.Ignore)]
         public string Server { get; set; }
         
-        [JsonProperty(PropertyName = "TokenType", NullValueHandling = NullValueHandling.Ignore)]
-        public string TokenType { get; set; }
+        [JsonProperty(PropertyName = "tokenType", NullValueHandling = NullValueHandling.Ignore)]
+        public string tokenType { get; set; }
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty(PropertyName = "outputType", NullValueHandling = NullValueHandling.Ignore)]
+        public OutputType? outputType { get; set; }
 
         [JsonProperty(PropertyName = "port", NullValueHandling = NullValueHandling.Ignore)]
         public int? Port { get; set; }
@@ -60,5 +70,10 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "returnTypes", NullValueHandling = NullValueHandling.Ignore, ItemConverterType = typeof(StringEnumConverter))]
         public Dictionary<string, LdapAttributeTypes> AttributeTypes { get; set; }
 
+        [JsonProperty(PropertyName = "batch", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? batch { get; set; }
+
+        [JsonProperty(PropertyName = "retrieval", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? retrieval { get; set; }
     }
 }

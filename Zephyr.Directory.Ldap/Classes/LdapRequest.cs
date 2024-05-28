@@ -79,6 +79,18 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "union", NullValueHandling = NullValueHandling.Ignore)]
         public List<UnionType> Union { get; set; }
 
+        [JsonProperty(PropertyName = "jobID", NullValueHandling = NullValueHandling.Ignore)]
+        public string jobID { get; set; }
+
+        [JsonProperty(PropertyName = "recordsID", NullValueHandling = NullValueHandling.Ignore)]
+        public string recordsID { get; set; }
+
+        [JsonProperty(PropertyName = "Timestamp", NullValueHandling = NullValueHandling.Ignore)]
+        public string Timestamp { get; set; }
+
+        [JsonProperty(PropertyName = "expireAt", NullValueHandling = NullValueHandling.Ignore)]
+        public int expireAt { get; set; }
+        
         [JsonProperty(PropertyName = "attributes", NullValueHandling = NullValueHandling.Ignore)]
         public List<string> Attributes { get; set; }    // null = ALL, empty list = NONE
 

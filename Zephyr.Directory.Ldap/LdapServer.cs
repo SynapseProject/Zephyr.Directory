@@ -3,10 +3,13 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
 
+using Amazon.DynamoDBv2.Model;
 
 using System.Text;
 using System.Collections;
 using System.Collections.Generic;
+using System.Xml;
+using System.Xml.Serialization;
 
 using Novell.Directory.Ldap;
 using Novell.Directory.Ldap.SearchExtensions;
@@ -18,6 +21,14 @@ using Zephyr.Directory.Ldap;
 using System.Net.Cache;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq.Expressions;
+using System.Xml.Linq;
+using Newtonsoft.Json;
+using System.Xml.Serialization;
+using System.IO;
+using Newtonsoft.Json;
+using System.ComponentModel;
+using System.Net;
+using CsvHelper;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -37,7 +48,7 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.TokenType, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.tokenType, config.AttributeTypes);
         }
 
         public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, bool? ignoreWarnings, string token_type, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
@@ -211,6 +222,7 @@ namespace Zephyr.Directory.Ldap
                 }
             }
         }
+
         public LdapResponse Search(LdapRequest request, string searchBase, string searchFilter, string[] attributes = null, SearchScopeType? searchScope = null, int? maxResults = int.MaxValue, string nextTokenStr = null, List<UnionType> MultipleSearches = null)
         {
             LdapResponse response = new LdapResponse();
@@ -562,7 +574,6 @@ namespace Zephyr.Directory.Ldap
                 response.SearchBase = searchBase;
                 response.SearchFilter = searchFilter;
             }
-
             return response;
         }
 
@@ -734,6 +745,19 @@ namespace Zephyr.Directory.Ldap
             //    x509 = new X509Certificate(data);
 
             return true;
+        }
+
+        public static void get_Known_attributes(string Key, AttributeValue value){
+            bool key_checker = DefaultTypes.ContainsKey(Key);
+            if(key_checker){
+                string value_type = DefaultTypes[Key].ToString();
+                if(value_type.Contains("Array")){
+
+                }
+                else{
+                    
+                }
+            }
         }
     }
 }

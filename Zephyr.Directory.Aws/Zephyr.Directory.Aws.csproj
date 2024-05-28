@@ -15,7 +15,7 @@
           <command>dotnet lambda package --framework net6.0</command>
           <workingdir>${ProjectDir}</workingdir>
         </Command>
-        <Command>
+        <Command>\
           <type>AfterClean</type>
           <command>rm -r *</command>
           <workingdir>${ProjectDir}/bin/Release/net6.0/</workingdir>
@@ -51,8 +51,11 @@
     <None Remove="Amazon.Lambda.Core" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.7.302.22" />
     <PackageReference Include="AWSSDK.Lambda" Version="3.7.109.6" />
     <PackageReference Include="Amazon.Lambda.Serialization.Json" Version="2.1.0" />
-    <PackageReference Include="Amazon.Lambda.Core" Version="2.1.0" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="2.2.0" />
+    <PackageReference Include="YamlDotNet" Version="15.1.2" />
   </ItemGroup>
 </Project>
