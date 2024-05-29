@@ -52,29 +52,11 @@ namespace Zephyr.Directory
             return csv_string;
         }
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
-            //string xmlString = null;
             dynamic OutputObject = null;
             if(type == OutputType.Json){
-                string test = JsonTools.Serialize(response, true);
-                OutputObject = test;
+                OutputObject = response;
             }
-            // else if(type == OutputType.XML){
-            //     XNode node = JsonConvert.DeserializeXNode(JsonTools.Serialize(response, true), "Root");
-            //     OutputObject = node;
-            // }
             else if(type == OutputType.YAML){
-                // dynamic expConverter = new ExpandoObject();
-                // string json = JsonTools.Serialize(response, false);
-                // dynamic deserializedObject = JsonConvert.DeserializeObject<LdapResponse>(json, expConverter);
-                // var serializer = new YamlDotNet.Serialization.Serializer();
-                // var yaml = serializer.Serialize(deserializedObject);
-                ////////////////////////////////////////////
-                // var serializer = new Serializer();
-                // var yaml = new StringBuilder();
-                // await using var textWriter = new StringWriter(yaml);
-                // serializer.Serialize(textWriter, input, typeof(T));
-                // Console.WriteLine(yaml.ToString());
-                //////////////////////////////////////////////
                 var serializer = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull).Build();
                 var yaml = serializer.Serialize(response);
                 OutputObject = yaml;
@@ -98,39 +80,39 @@ namespace Zephyr.Directory
         {
             string content = File.ReadAllText(@"../../../TestFiles/myriad.json");
             LdapRequest request = JsonTools.Deserialize<LdapRequest>(content);
-            // JObject o1 = JObject.Parse(File.ReadAllText(@"../../../TestFiles/myriad.json"));
-            // LdapRequest request = JsonTools.Deserialize<LdapRequest>(o1["body"].ToString());
-            Console.WriteLine(JsonTools.Serialize(request, true));
-
             bool isPing = request.Ping.HasValue;
             dynamic output_data = null;
+            bool isEncryptionRequest = request.Crypto?.Text != null;
 
             LdapResponse response = new LdapResponse();
             LdapConfig test_config = LdapUtils.ApplyDefaulsAndValidate(request.Config);
-            if(request.Config.batch == true && request.Config.retrieval == false){
+            if(test_config.batch == true && test_config.retrieval == false){
                 DynamoDBTools dynamo = new DynamoDBTools();
-                var new_response = dynamo.invokeLambda(content);
+                LdapBatchResponse new_response = new LdapBatchResponse();
+                new_response = dynamo.invokeLambda(request);
                 output_data = new_response;
             }
-            else if(request.Config.retrieval == true && request.Config.batch == false){
+            else if(test_config.retrieval == true && test_config.batch == false){
                 DynamoDBTools dynamo = new DynamoDBTools();
                 LdapResponse new_response = new LdapResponse();
                 new_response = dynamo.Batch_Retrieval(request);
                 output_data = new_response;
-                Console.WriteLine("Retrieve from DynamoDB");
             }
             else{
-                if (request.Crypto?.Text != null)
+                if (!isEncryptionRequest && !isPing)
+                    Console.WriteLine("REQUEST - " + JsonTools.Serialize(request, false));
+
+                if (isEncryptionRequest)
                 {
-                    LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
-                    response.Message = Rijndael.Encrypt(request.Crypto.Text, request.Crypto.PassPhrase, request.Crypto.SaltValue, request.Crypto.InitVector);
+                    LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
+                    response.Message = Rijndael.Encrypt(crypto.Text, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
+                    output_data = response;
                 }
                 else if (isPing)
                 {
                     System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
                     System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                     string version = fvi.FileVersion;
-
                     response.Message = "Hello From MyriAD (" + version + ").";
                     if (request.Ping == PingType.Echo)
                         Console.WriteLine("Ping");
@@ -154,7 +136,6 @@ namespace Zephyr.Directory
                                 Console.WriteLine(e);
                             }
                             response = ldap.Search(request, request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken, request.Union);
-                    
                         }
                         else{
                             throw new FormatException("Warning: TokenType must be set to Server or Client");
@@ -167,15 +148,9 @@ namespace Zephyr.Directory
                         response = LdapServer.ReturnError(e, request.Config);
                         output_data = response;
                     }
-                    // if(request.Config.Output == OutputType.XML){
-                    //     Dictionary<string, string> headers = new Dictionary<string, string> { { "Content-Type", "application/xml"}};
-                    //     string xmlstring = output_data.ToString();
-                    //     return Dictionary<string, string> test = new Dictionary<string,string>
-                    // }
                 }
-                Console.WriteLine(JsonTools.Serialize(response, true));
                 try{
-                    if(request.Config.batch == true && request.Config.retrieval==true){
+                    if(request.Config.batch == true && request.Config.retrieval == true){
                         DynamoDBTools db = new DynamoDBTools();
                         db.update_entry(response, request);
                     }
@@ -183,7 +158,6 @@ namespace Zephyr.Directory
                 catch{
                     Console.WriteLine("");
                 }
-                Console.WriteLine(output_data);
             }
             Console.WriteLine(JsonTools.Serialize(output_data, true));
         }

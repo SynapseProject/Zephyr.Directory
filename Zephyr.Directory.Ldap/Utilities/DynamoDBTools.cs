@@ -129,7 +129,8 @@ namespace Zephyr.Directory.Ldap
             }
             return string.Empty;  
         }
-        public LdapBatchResponse invokeLambda(string request_body){
+        public LdapBatchResponse invokeLambda(LdapRequest request_obj){
+            string request_body = JsonTools.Serialize(request_obj,true);
             Guid jobID_uuid = Guid.NewGuid();
             Guid Records_uuid = Guid.NewGuid();
             string jobID_uuid2 = jobID_uuid.ToString();

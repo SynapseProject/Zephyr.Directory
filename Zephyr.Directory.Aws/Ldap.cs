@@ -45,38 +45,14 @@ namespace Zephyr.Directory.Aws
             
             return csv_string;
         }
-
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
-            //string xmlString = null;
             dynamic OutputObject = null;
             if(type == OutputType.Json){
                 OutputObject = response;
             }
-            // else if(type == OutputType.XML){
-            //     XNode node = JsonConvert.DeserializeXNode(JsonTools.Serialize(response, true), "Root");
-            //     OutputObject = node;
-            // }
             else if(type == OutputType.YAML){
-                // dynamic expConverter = new ExpandoObject();
-                // string json = JsonTools.Serialize(response, false);
-                // dynamic deserializedObject = JsonConvert.DeserializeObject<LdapResponse>(json, expConverter);
-                // var serializer = new YamlDotNet.Serialization.Serializer();
-                // var yaml = serializer.Serialize(deserializedObject);
-                ////////////////////////////////////////////
-                // var serializer = new Serializer();
-                // var yaml = new StringBuilder();
-                // await using var textWriter = new StringWriter(yaml);
-                // serializer.Serialize(textWriter, input, typeof(T));
-                // Console.WriteLine(yaml.ToString());
-                //////////////////////////////////////////////
                 var serializer = new SerializerBuilder().ConfigureDefaultValuesHandling(DefaultValuesHandling.OmitNull).Build();
                 var yaml = serializer.Serialize(response);
-                // OutputObject = yaml;
-                //////////////////////////////////////////////
-                // var response_obj = new APIGatewayProxyResponse{
-                //     Body = yaml,
-                //     Headers = new Dictionary<string, string> { { "Content-Type", "application/yaml"} }
-                // };
                 OutputObject = yaml;
             }
             else{
@@ -94,7 +70,6 @@ namespace Zephyr.Directory.Aws
             }
             return OutputObject;
         }
-
         public static dynamic ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {   
             bool isPing = request.Ping.HasValue;
@@ -103,17 +78,13 @@ namespace Zephyr.Directory.Aws
 
             LdapResponse response = new LdapResponse();
             LdapConfig test_config = LdapUtils.ApplyDefaulsAndValidate(request.Config);
-           if(request.Config.batch == true && request.Config.retrieval == false){
-                Console.WriteLine("In Batch");
+           if(test_config.batch == true && test_config.retrieval == false){
                 DynamoDBTools dynamo = new DynamoDBTools();
                 LdapBatchResponse new_response = new LdapBatchResponse();
-                string content = JsonTools.Serialize(request,true);
-                new_response = dynamo.invokeLambda(content);
-                Console.WriteLine("Invoke Function");
-                return new_response;
+                new_response = dynamo.invokeLambda(request);
+                output_data = new_response;
             }
-            else if(request.Config.retrieval == true && request.Config.batch == false){
-                Console.WriteLine("Retrieve from DynamoDB");
+            else if(test_config.retrieval == true && test_config.batch == false){
                 DynamoDBTools dynamo = new DynamoDBTools();
                 LdapResponse new_response = new LdapResponse();
                 new_response = dynamo.Batch_Retrieval(request);
@@ -127,6 +98,7 @@ namespace Zephyr.Directory.Aws
                 {
                     LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(request.Crypto);
                     response.Message = Rijndael.Encrypt(crypto.Text, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
+                    output_data = response;
                 }
                 else if (isPing)
                 {
@@ -148,13 +120,12 @@ namespace Zephyr.Directory.Aws
                         if(request.Config.TokenType == "Server" || request.Config.TokenType == "Client"){
                             try{
                                 if(request.Config.batch == true && request.Config.retrieval == true){
-                                    Console.WriteLine("Adding Entry");
                                     DynamoDBTools db = new DynamoDBTools();
                                     db.add_entry(request);
                                 }
                             }
-                            catch{
-                                Console.WriteLine("");
+                            catch(Exception e){
+                                Console.WriteLine(e);
                             }
                             response = ldap.Search(request, request.SearchBase, searchFilter, request.Attributes, request.SearchScope, request.MaxResults, request.NextToken, request.Union);
                         }
@@ -167,6 +138,7 @@ namespace Zephyr.Directory.Aws
                     catch (Exception e)
                     {
                         response = LdapServer.ReturnError(e, request.Config);
+                        output_data = response;
                     }
                     try{
                         if(request.Config.batch == true && request.Config.retrieval == true){
@@ -179,9 +151,6 @@ namespace Zephyr.Directory.Aws
                     }
                 }
             }
-
-            if (!isEncryptionRequest && !isPing)
-                Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false)); 
             return output_data;
         }
     }
