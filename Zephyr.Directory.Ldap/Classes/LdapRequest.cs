@@ -3,13 +3,16 @@ using System.Collections.Generic;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
 using Novell.Directory.Ldap;
+using Zephyr.Crypto;
 
 
 namespace Zephyr.Directory.Ldap
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum ObjectType
     {
         User,                   // User and Contact Objects
@@ -27,12 +30,14 @@ namespace Zephyr.Directory.Ldap
         DistinguishedName       // Returns object by DistinguishedName
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum PingType
     {
         Echo,
         NoEcho
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum SearchScopeType
     {
         All = LdapConnection.ScopeSub,      // Search the base object and all entries within its subtree
@@ -48,6 +53,7 @@ namespace Zephyr.Directory.Ldap
         [JsonProperty(PropertyName = "searchBase", NullValueHandling = NullValueHandling.Ignore)]
         public string SearchBase { get; set; }
     }
+
     public class LdapRequest
     {
         [JsonConverter(typeof(StringEnumConverter))]
@@ -103,5 +109,54 @@ namespace Zephyr.Directory.Ldap
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "ping", NullValueHandling = NullValueHandling.Ignore)]
         public PingType? Ping { get; set; }
+
+        // Process the LDAP Request
+        public LdapResponse Process()
+        {
+            LdapResponse response = new LdapResponse();
+            bool isEncryptionRequest = this.Crypto?.Text != null;
+            bool isPing = this.Ping.HasValue;
+
+            if (isEncryptionRequest)
+            {
+                LdapCrypto crypto = LdapUtils.ApplyDefaulsAndValidate(this.Crypto);
+                response.Message = Rijndael.Encrypt(crypto.Text, crypto.PassPhrase, crypto.SaltValue, crypto.InitVector);
+            }
+            else if (isPing)
+            {
+                System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
+                string version = fvi.FileVersion;
+
+                response.Message = "Hello From MyriAD (" + version + ").";
+                if (this.Ping == PingType.Echo)
+                    Console.WriteLine("Ping");
+            }
+            else
+            {
+                try
+                {
+                    LdapUtils.ApplyDefaulsAndValidate(this);
+                    string searchFilter = LdapUtils.GetSearchString(this);
+                    LdapServer ldap = new LdapServer(this.Config);
+                    ldap.Bind(this.Config);
+                    if (this.Config.TokenType == "Server" || this.Config.TokenType == "Client")
+                    {
+                        response = ldap.Search(this, this.SearchBase, searchFilter, this.Attributes, this.SearchScope, this.MaxResults, this.NextToken, this.Union);
+                    }
+                    else
+                    {
+                        throw new FormatException("Warning: TokenType must be set to Server or Client");
+                    }
+                    ldap.Disconnect();
+                }
+                catch (Exception e)
+                {
+                    response = LdapServer.ReturnError(e, this.Config);
+                }
+            }
+
+            return response;
+        }
     }
 }

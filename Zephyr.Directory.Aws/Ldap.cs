@@ -15,7 +15,6 @@ using YamlDotNet.Serialization;
 using Zephyr.Crypto;
 using Newtonsoft.Json.Linq;
 
-using Zephyr.Crypto;
 using Zephyr.Directory.Ldap;
 
 // Allows Lambda Function's JSON Input to be converted into a .NET class
@@ -46,8 +45,9 @@ namespace Zephyr.Directory.Aws
             
             return csv_string;
         }
+
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
-            string xmlString = null;
+            //string xmlString = null;
             dynamic OutputObject = null;
             if(type == OutputType.Json){
                 OutputObject = response;
@@ -94,6 +94,7 @@ namespace Zephyr.Directory.Aws
             }
             return OutputObject;
         }
+
         public static dynamic ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {   
             bool isPing = request.Ping.HasValue;
@@ -144,7 +145,7 @@ namespace Zephyr.Directory.Aws
                         string searchFilter = LdapUtils.GetSearchString(request);
                         LdapServer ldap = new LdapServer(request.Config);
                         ldap.Bind(request.Config);
-                        if(request.Config.tokenType == "Server" || request.Config.tokenType == "Client"){
+                        if(request.Config.TokenType == "Server" || request.Config.TokenType == "Client"){
                             try{
                                 if(request.Config.batch == true && request.Config.retrieval == true){
                                     Console.WriteLine("Adding Entry");
@@ -178,6 +179,7 @@ namespace Zephyr.Directory.Aws
                     }
                 }
             }
+
             if (!isEncryptionRequest && !isPing)
                 Console.WriteLine("RESPONSE - " + JsonTools.Serialize(response, false)); 
             return output_data;

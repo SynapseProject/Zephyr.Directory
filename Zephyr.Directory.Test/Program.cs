@@ -52,7 +52,7 @@ namespace Zephyr.Directory
             return csv_string;
         }
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
-            string xmlString = null;
+            //string xmlString = null;
             dynamic OutputObject = null;
             if(type == OutputType.Json){
                 string test = JsonTools.Serialize(response, true);
@@ -143,7 +143,7 @@ namespace Zephyr.Directory
                         string searchFilter = LdapUtils.GetSearchString(request);
                         LdapServer ldap = new LdapServer(request.Config);
                         ldap.Bind(request.Config);
-                        if(request.Config.tokenType == "Server" || request.Config.tokenType == "Client"){
+                        if(request.Config.TokenType == "Server" || request.Config.TokenType == "Client"){
                             try{
                                 if(request.Config.batch == true && request.Config.retrieval == true){
                                     DynamoDBTools db = new DynamoDBTools();

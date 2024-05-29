@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:58075",
+      "sslPort": 44325
+    }
+  },
+  "profiles": {
+    "Zephyr.Directory.ASPDotNet": {
+      "commandName": "Project",
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7081;http://localhost:5131",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DEFAULT_CONFIG": "{\"server\":\"VM-ADCONTROLLER.local\",\"ssl\":false,\"username\":\"SANDBOX\\\\Administrator\",\"password\":\"Pm8sgIkgGk2JwYKp9Gcjrw==\",\"maxRetries\": 3,\"maxPageSize\":750, \"tokenType\": \"Client\"}",
+        "SB2_CONFIG": "{\"server\":\"VM-AD-SB2.local\",\"username\":\"SB2\\\\Administrator\",\"maxRetries\": 3, \"tokenType\": \"Client\"}",
+        "RETURN_TYPES": "{ \"customAttr003\": \"StringArray\" } ",
+        "DOMAIN_MAPPINGS": "{\"SANDBOX.LOCAL\":\"DEFAULT_CONFIG\",\"SANDBOX\":\"DEFAULT_CONFIG\",\"SB2.LOCAL\":\"SB2_CONFIG\",\"SB2\":\"SB2_CONFIG\"}"
+      },
+      "dotnetRunMessages": true
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

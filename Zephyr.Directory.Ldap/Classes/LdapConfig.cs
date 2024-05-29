@@ -8,6 +8,7 @@ using Newtonsoft.Json.Serialization;
 
 namespace Zephyr.Directory.Ldap
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public enum LdapAttributeTypes
     {
         Unknown,            // Return type is Unknown.  Return value(s) will be evaulated and a best guess at return type will be made.
@@ -37,7 +38,7 @@ namespace Zephyr.Directory.Ldap
         public string Server { get; set; }
         
         [JsonProperty(PropertyName = "tokenType", NullValueHandling = NullValueHandling.Ignore)]
-        public string tokenType { get; set; }
+        public string TokenType { get; set; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         [JsonProperty(PropertyName = "outputType", NullValueHandling = NullValueHandling.Ignore)]

@@ -23,9 +23,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using System.Linq.Expressions;
 using System.Xml.Linq;
 using Newtonsoft.Json;
-using System.Xml.Serialization;
 using System.IO;
-using Newtonsoft.Json;
 using System.ComponentModel;
 using System.Net;
 using CsvHelper;
@@ -48,7 +46,7 @@ namespace Zephyr.Directory.Ldap
 
         public LdapServer(LdapConfig config)
         {
-            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.tokenType, config.AttributeTypes);
+            init(config.Server, config.Port.Value, config.UseSSL.Value, config.MaxRetries, config.MaxPageSize, config.FollowReferrals, config.IgnoreWarnings, config.TokenType, config.AttributeTypes);
         }
 
         public LdapServer(string server, int port, bool useSSL, int? maxRetries, int? maxPageSize, bool? followReferrals, bool? ignoreWarnings, string token_type, Dictionary<string, LdapAttributeTypes> attributeReturnTypes = null)
@@ -317,8 +315,6 @@ namespace Zephyr.Directory.Ldap
                     if (maxResults != null)
                         maxSearchResults = maxResults.Value;
                     
-                    Console.WriteLine(maxSearchResults - entries.Count);
-                    Console.WriteLine(this.MaxPageSize);
                     if (maxSearchResults - entries.Count < this.MaxPageSize)
                         maxPageSize = maxSearchResults - entries.Count;
                     //Get Controls for the LDAP Search
@@ -487,7 +483,6 @@ namespace Zephyr.Directory.Ldap
                                 PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token); 
                             }
                         }
-                        Console.WriteLine();
                     }
                     for(int index =0; index < results.Count; index++){
                         ILdapSearchResults result = results[index];

@@ -181,8 +181,8 @@ namespace Zephyr.Directory.Ldap
             if (config.retrieval == null)
                 config.retrieval = false;
             
-            if (config.tokenType == null)
-                config.tokenType = "Client";
+            if (config.TokenType == null)
+                config.TokenType = "Client";
 
             return config;
         }
@@ -232,8 +232,8 @@ namespace Zephyr.Directory.Ldap
             if (target.IgnoreWarnings == null)
                 target.IgnoreWarnings = source.IgnoreWarnings;
             
-            if (target.tokenType == null)
-                target.tokenType = source.tokenType;
+            if (target.TokenType == null)
+                target.TokenType = source.TokenType;
             
             if (target.outputType == null)
                 target.outputType = source.outputType;
@@ -265,8 +265,8 @@ namespace Zephyr.Directory.Ldap
             if (config.retrieval == null)
                 config.retrieval = false;
             
-            if (config.tokenType == null)
-                config.tokenType = "Client";
+            if (config.TokenType == null)
+                config.TokenType = "Client";
 
             return config;
         }
