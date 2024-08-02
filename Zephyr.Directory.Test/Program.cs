@@ -89,6 +89,7 @@ namespace Zephyr.Directory
             if(test_config.batch == true && test_config.retrieval == false){
                 DynamoDBTools dynamo = new DynamoDBTools();
                 LdapBatchResponse new_response = new LdapBatchResponse();
+                // Invoke Lambda Function to Proceed with the Batch Request
                 new_response = dynamo.invokeLambda(request);
                 output_data = new_response;
             }
@@ -129,6 +130,7 @@ namespace Zephyr.Directory
                             try{
                                 if(request.Config.batch == true && request.Config.retrieval == true){
                                     DynamoDBTools db = new DynamoDBTools();
+                                    // Add entry to DynamoDB Table Note: Only goes into this conditional statement if Lambda was Invoked
                                     db.add_entry(request);
                                 }
                             }

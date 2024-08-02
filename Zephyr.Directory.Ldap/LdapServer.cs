@@ -329,8 +329,7 @@ namespace Zephyr.Directory.Ldap
                     int currentRecords = 0;
                     if (TokenType == "Server"){
                         // Searching process for Server Based Token
-                        // Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a 
-                        // Multiple Searches Entry
+                        // Pick_up_Here is used to determine where the previous search finished, if Pick_up_Here is > 1 that means that the search finished in a Multiple Searches Entry
                         if(Pick_up_Here > 1){
                             results.Add(conn.Search(MultipleSearches[Pick_up_Here-2].SearchBase, scope, MultipleSearches[Pick_up_Here-2].SearchValue, attributes, false, options));
                         }
