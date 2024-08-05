@@ -250,9 +250,6 @@ namespace Zephyr.Directory.Ldap
                     parsed_string = nextTokenStr.Split("-");
                     nextToken = Utils.Base64ToBytes(parsed_string[0]);
                     Pick_up_Here = Int32.Parse(parsed_string[1]);
-                    if(Pick_up_Here == 0){
-                        Pick_up_Here = 1;
-                    }
                 }
                 
             }
@@ -457,6 +454,7 @@ namespace Zephyr.Directory.Ldap
                                         }
                                     }
                                     else{
+                                        // Logic to help determine the next Client Based Token
                                         if(Token_present)
                                             continue_token = $"-0{iteration}";
                                         else{
@@ -563,12 +561,8 @@ namespace Zephyr.Directory.Ldap
                 if (nextToken != null && nextToken.Length > 0)
                     if (iteration >= 1 && string.IsNullOrEmpty(PossibleNextToken))
                         response.NextToken = String.Concat(Utils.BytesToBase64(nextToken), String.Concat("-", iteration.ToString()));
-                    else{
-                        if(TokenType == "Client")
-                            response.NextToken = Utils.BytesToBase64(nextToken);
-                        else
-                            response.NextToken = String.Concat(Utils.BytesToBase64(nextToken), String.Concat("-", iteration.ToString()));
-                    }
+                    else
+                        response.NextToken = Utils.BytesToBase64(nextToken);
             }
             catch (Exception e)
             {
