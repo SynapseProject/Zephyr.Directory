@@ -210,13 +210,21 @@ namespace Zephyr.Directory.Ldap
                 }
             }
             else{
-                if(nextTokenStr == null){
+                // Initial Page Search for Client Based Token
+                if(nextTokenStr == null && nextToken == null){
                     SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize, null);
                     options.SetControls(pagedRequestControl);
                 }
                 else{
-                    SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize+nextToken_client, null);
-                    options.SetControls(pagedRequestControl);
+                    try{
+                        // This is the options MyriAD will use when MaxResults havent been achieved, aka multiple Iterations of the while loop
+                        SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize+nextToken_client, nextToken);
+                        options.SetControls(pagedRequestControl);
+                    }
+                    catch{
+                        SimplePagedResultsControl pagedRequestControl = new SimplePagedResultsControl(maxPageSize+nextToken_client, null);
+                        options.SetControls(pagedRequestControl);
+                    }
                 }
             }
         }
@@ -242,6 +250,9 @@ namespace Zephyr.Directory.Ldap
                     parsed_string = nextTokenStr.Split("-");
                     nextToken = Utils.Base64ToBytes(parsed_string[0]);
                     Pick_up_Here = Int32.Parse(parsed_string[1]);
+                    if(Pick_up_Here == 0){
+                        Pick_up_Here = 1;
+                    }
                 }
                 
             }
@@ -400,7 +411,9 @@ namespace Zephyr.Directory.Ldap
                         }
                         bool Token_present = false;
                         Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
+                        currentRecords = entries.Count;
                         if(nextTokenStr != null){
+                            currentRecords = 0;
                             // This for loop is used to determine the count of the records gathered during the previous search
                             for(int i =0; i < entries.Count; i++){
                                 if(i < nextToken_client){
@@ -408,9 +421,11 @@ namespace Zephyr.Directory.Ldap
                                 }
                                 entries_copy.Add(entries[i]);
                             }
-                            entries = entries_copy;
+                            if (entries_copy.Count > 0){
+                                entries = entries_copy;
+                                currentRecords = entries_copy.Count;
+                            }
                         }
-                        currentRecords = entries.Count;
                         if(MultipleSearches != null){
                             iteration = Pick_up_Here;
                             int recordsLeft = maxSearchResults - currentRecords;
@@ -521,15 +536,14 @@ namespace Zephyr.Directory.Ldap
                     if(nextToken_checker != null){
                         nextToken = nextToken_checker;
                     }
-                    else if(!String.IsNullOrEmpty(PossibleNextToken)){
+                    else if(!String.IsNullOrEmpty(PossibleNextToken) && currentRecords == maxResults){
                         nextToken = Encoding.ASCII.GetBytes(PossibleNextToken);
                     }
                     else{
                         nextToken = pagedResponseControl.Cookie;
                     }
-                    // nextToken = pagedResponseControl.Cookie;
                     // Max Results Retrieved.
-                    if (maxSearchResults <= entries.Count)
+                    if (maxSearchResults <= currentRecords)
                         break;
 
                 }
@@ -549,8 +563,12 @@ namespace Zephyr.Directory.Ldap
                 if (nextToken != null && nextToken.Length > 0)
                     if (iteration >= 1 && string.IsNullOrEmpty(PossibleNextToken))
                         response.NextToken = String.Concat(Utils.BytesToBase64(nextToken), String.Concat("-", iteration.ToString()));
-                    else
-                        response.NextToken = Utils.BytesToBase64(nextToken);
+                    else{
+                        if(TokenType == "Client")
+                            response.NextToken = Utils.BytesToBase64(nextToken);
+                        else
+                            response.NextToken = String.Concat(Utils.BytesToBase64(nextToken), String.Concat("-", iteration.ToString()));
+                    }
             }
             catch (Exception e)
             {
@@ -722,23 +740,6 @@ namespace Zephyr.Directory.Ldap
             response.Message = $"{e.Message} - {e.ToString()}";
 
             return response;
-        }
-
-        private bool MySSLHandler(X509Certificate certificate, int[] certificateErrors)
-        {
-
-            //X509Store store = null;
-            //X509Stores stores = X509StoreManager.CurrentUser;
-            ////string input;
-            //store = stores.TrustedRoot;
-
-            //X509Certificate x509 = null;
-            //X509CertificateCollection coll = new X509CertificateCollection();
-            //byte[] data = certificate.GetRawCertData();
-            //if (data != null)
-            //    x509 = new X509Certificate(data);
-
-            return true;
         }
 
         public static void get_Known_attributes(string Key, AttributeValue value){
