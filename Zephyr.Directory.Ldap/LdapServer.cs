@@ -347,13 +347,14 @@ namespace Zephyr.Directory.Ldap
                         bool Token_present = false;  
                         Token_present = CheckForToken(results, entries, nextToken_checker).Item1;
                         currentRecords = entries.Count;
+                        // Multiple Searches Request Logic for Server Token
                         if(MultipleSearches != null){
                             iteration = Pick_up_Here;
                             int recordsLeft = maxSearchResults - currentRecords;
                             if(!Token_present && recordsLeft != 0){
                                 for(int index = Pick_up_Here-1; index < MultipleSearches.Count; index++){
                                     recordsLeft = maxSearchResults - currentRecords;
-                                    // The LDAP SearchConstraints have to updated to take into consideration the entries that have been collected
+                                    // The LDAP SearchConstraints have to be updated to take into consideration the entries that have been collected
                                     LdapSearchConstraints options2 = new LdapSearchConstraints();
                                     SimplePagedResultsControl new_pagedRequestControl = new SimplePagedResultsControl(recordsLeft, nextToken);
                                     options2.SetControls(new_pagedRequestControl);
@@ -423,6 +424,7 @@ namespace Zephyr.Directory.Ldap
                                 currentRecords = entries_copy.Count;
                             }
                         }
+                        // Multiple Searches Request Logic for Client Token
                         if(MultipleSearches != null){
                             iteration = Pick_up_Here;
                             int recordsLeft = maxSearchResults - currentRecords;
@@ -473,6 +475,7 @@ namespace Zephyr.Directory.Ldap
                                 }
                             }
                             else{
+                                // Logic to help determine the next Client Based Token
                                 if(Token_present){
                                     continue_token = $"-0{Pick_up_Here}";
                                     PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token);

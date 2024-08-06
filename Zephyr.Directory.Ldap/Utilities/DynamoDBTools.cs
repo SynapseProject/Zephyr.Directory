@@ -75,8 +75,8 @@ namespace Zephyr.Directory.Ldap
             set { Region = RegionEndpoint.GetBySystemName("us-east-2"); }
         }
         public string DefaultReporter { get; set; }
-        private string RequestsTable = System.Environment.GetEnvironmentVariable("Myriad_request_table");
-        private string RecordsTable = System.Environment.GetEnvironmentVariable("Myriad_records_table");
+        private string RequestsTable = System.Environment.GetEnvironmentVariable("Myriad_Batch_Request_Table");
+        private string RecordsTable = System.Environment.GetEnvironmentVariable("Myriad_Batch_Records_Table");
         private AmazonDynamoDBClient client;
         private AmazonLambdaClient lambdaClient;
 
@@ -114,20 +114,6 @@ namespace Zephyr.Directory.Ldap
             Document doc = Document.FromJson(jsonString);
             var task = Request.PutItemAsync(doc);
             // Console.WriteLine(task.Result);
-        }
-        public async Task<string> Invoke(string data){
-            InvokeRequest request = new InvokeRequest
-            {
-                FunctionName = "myriad-core",
-                Payload = data
-            };
-            var test = await lambdaClient.InvokeAsync(request);
-            if (test != null){
-                using (var sr = new StreamReader(test.Payload)){
-                    return await sr.ReadToEndAsync();
-                }
-            }
-            return string.Empty;  
         }
         public LdapBatchResponse invokeLambda(LdapRequest request_obj){
             string request_body = JsonTools.Serialize(request_obj,true);
