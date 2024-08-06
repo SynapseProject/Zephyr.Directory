@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 using Zephyr.Crypto;
 using System.Linq;
+using System.Net.Cache;
 
 namespace Zephyr.Directory.Ldap
 {
@@ -171,6 +172,18 @@ namespace Zephyr.Directory.Ldap
             if (config.MaxPageSize == null)
                 config.MaxPageSize = 512;
 
+            if (config.outputType == null)
+                config.outputType = OutputType.Json;
+
+            if (config.batch == null)
+                config.batch = false;
+
+            if (config.retrieval == null)
+                config.retrieval = false;
+            
+            if (config.TokenType == null)
+                config.TokenType = "Client";
+
             return config;
         }
 
@@ -221,6 +234,15 @@ namespace Zephyr.Directory.Ldap
             
             if (target.TokenType == null)
                 target.TokenType = source.TokenType;
+            
+            if (target.outputType == null)
+                target.outputType = source.outputType;
+            
+            if (target.batch == null)
+                target.batch = source.batch;
+
+            if (target.retrieval == null)
+                target.retrieval = source.retrieval;
 
             if (target.AttributeTypes == null)
                 target.AttributeTypes = new Dictionary<string, LdapAttributeTypes>(StringComparer.OrdinalIgnoreCase);
@@ -233,6 +255,21 @@ namespace Zephyr.Directory.Ldap
             return target;
         }
 
+        public static LdapConfig ApplyDefaulsAndValidate(LdapConfig config){
+            if (config == null)
+                config = new LdapConfig();
+
+            if (config.batch == null)
+                config.batch = false;
+
+            if (config.retrieval == null)
+                config.retrieval = false;
+            
+            if (config.TokenType == null)
+                config.TokenType = "Client";
+
+            return config;
+        }
         public static LdapRequest ApplyDefaulsAndValidate(LdapRequest request)
         {
             // Set Config Defaults

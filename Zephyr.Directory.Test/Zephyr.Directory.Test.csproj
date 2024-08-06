@@ -43,4 +43,8 @@
     <Folder Include="TestFiles\" />
     <Folder Include="Properties\" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
+    <PackageReference Include="YamlDotNet" Version="15.1.2" />
+  </ItemGroup>
 </Project>

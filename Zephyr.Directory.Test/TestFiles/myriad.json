@@ -1,18 +1,6 @@
 {
-    "objectType": "Group",
-    "searchValue": "leegroup_*",
-    "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com",
-    "attributes": [],
-    "maxResults": 30,
-    "nextToken": "MTAtMDI=",
-    "union": [
-        {
-            "searchValue": "leegroup_*",
-            "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com" 
-        },
-        {
-            "searchValue": "leegroup_*",
-            "searchBase": "OU=Myriad,OU=TooManyGroups2,DC=ad,DC=cavazosactivedirectory,DC=com"
-        }
-    ]
+  "jobID": "123456-c846-41a5-bdbb-989557298571",
+  "config": {
+    "retrieval": true
+  }
 }
