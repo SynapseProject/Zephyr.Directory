@@ -117,6 +117,7 @@ namespace Zephyr.Directory
                     response.Message = "Hello From MyriAD (" + version + ").";
                     if (request.Ping == PingType.Echo)
                         Console.WriteLine("Ping");
+                    output_data = response;
                 }
                 else
                 {
