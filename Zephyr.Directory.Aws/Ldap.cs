@@ -16,6 +16,9 @@ using Zephyr.Crypto;
 using Newtonsoft.Json.Linq;
 
 using Zephyr.Directory.Ldap;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 
 // Allows Lambda Function's JSON Input to be converted into a .NET class
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.Json.JsonSerializer))]
@@ -45,6 +48,7 @@ namespace Zephyr.Directory.Aws
             
             return csv_string;
         }
+
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
             dynamic OutputObject = null;
             if(type == OutputType.Json){
@@ -70,6 +74,19 @@ namespace Zephyr.Directory.Aws
             }
             return OutputObject;
         }
+
+        public static string GetServerIPAddress()
+        {
+            string localIP;
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0))
+            {
+                socket.Connect("8.8.8.8", 80);
+                IPEndPoint endpoint = socket.LocalEndPoint as IPEndPoint;
+                localIP = endpoint.Address.ToString();
+            }
+            return localIP;
+        }
+
         public static dynamic ProcessRequest(LdapRequest request, ILambdaContext ctx)
         {   
             bool isPing = request.Ping.HasValue;
@@ -106,6 +123,7 @@ namespace Zephyr.Directory.Aws
                     System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                     string version = fvi.FileVersion;
                     response.Message = "Hello From MyriAD (" + version + ").";
+                    response.Server = GetServerIPAddress();
                     if (request.Ping == PingType.Echo)
                         Console.WriteLine("Ping");
                     output_data = response;
