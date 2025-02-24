@@ -1,6 +1,1 @@
-{
-  "jobID": "123456-c846-41a5-bdbb-989557298571",
-  "config": {
-    "retrieval": true
-  }
-}
+{ "ping": "Echo" }

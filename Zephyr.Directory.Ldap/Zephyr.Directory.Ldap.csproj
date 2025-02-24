@@ -3,6 +3,10 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Configurations>Release;Debug</Configurations>
+    <PackageId>Zephyr.Directory.Ldap</PackageId>
+    <Version>1.1.25049.0</Version>
+    <Authors>Guy Waguespack</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' " />

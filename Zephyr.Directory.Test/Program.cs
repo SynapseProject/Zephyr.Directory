@@ -24,6 +24,8 @@ using System.Runtime.CompilerServices;
 using System.Linq.Expressions;
 using YamlDotNet.Serialization;
 using Newtonsoft.Json.Linq;
+using System.Net;
+using System.Net.Sockets;
 
 namespace Zephyr.Directory
 {
@@ -51,6 +53,7 @@ namespace Zephyr.Directory
             
             return csv_string;
         }
+
         public static dynamic OutputConverter(LdapResponse response, OutputType? type){
             dynamic OutputObject = null;
             if(type == OutputType.Json){
@@ -76,6 +79,18 @@ namespace Zephyr.Directory
             }
             return OutputObject;
         }
+
+        public static string GetServerIPAddress()
+        {
+            string localIP;
+            using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0)) {
+                socket.Connect("8.8.8.8", 80);
+                IPEndPoint endpoint = socket.LocalEndPoint as IPEndPoint;
+                localIP = endpoint.Address.ToString();
+            }
+            return localIP;
+        }
+
         static void Main(string[] args)
         {
             string content = File.ReadAllText(@"../../../TestFiles/myriad.json");
@@ -115,8 +130,10 @@ namespace Zephyr.Directory
                     System.Diagnostics.FileVersionInfo fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
                     string version = fvi.FileVersion;
                     response.Message = "Hello From MyriAD (" + version + ").";
+                    response.Server = GetServerIPAddress();
                     if (request.Ping == PingType.Echo)
                         Console.WriteLine("Ping");
+                    output_data = response;
                 }
                 else
                 {
