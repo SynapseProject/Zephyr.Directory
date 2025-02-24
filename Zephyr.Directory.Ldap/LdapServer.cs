@@ -496,7 +496,10 @@ namespace Zephyr.Directory.Ldap
                             if(Token_present){
                                continue_token = $"-0{Pick_up_Here}";
                                 PossibleNextToken = String.Concat((currentRecords+nextToken_client).ToString(), continue_token); 
+                            } else {
+                                PossibleNextToken = null;   // Search Is Complete.
                             }
+                            
                         }
                     }
                     for(int index =0; index < results.Count; index++){
